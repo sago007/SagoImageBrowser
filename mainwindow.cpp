@@ -12,6 +12,7 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QEvent>
+#include <QItemSelectionModel>
 #include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -82,20 +83,10 @@ void MainWindow::setupConnections()
             });
 
     connect(m_listView, &QListView::clicked, this,
-            [this](const QModelIndex &index)
-            {
-                QString path = m_imageModel->filePath(index);
+            [this](const QModelIndex &index) { showPreview(index); });
 
-                QImageReader reader(path);
-                reader.setAutoTransform(true);
-                QImage image = reader.read();
-
-                m_previewLabel->setPixmap(
-                    QPixmap::fromImage(image).scaled(
-                        m_previewLabel->size(),
-                        Qt::KeepAspectRatio,
-                        Qt::SmoothTransformation));
-            });
+    connect(m_listView->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, [this](const QModelIndex &current) { showPreview(current); });
 
     connect(m_listView->verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this]()
@@ -129,4 +120,22 @@ void MainWindow::loadVisibleThumbnails()
 
     std::cout << "loadVisibleThumbnails: " << first << " - " << last << "\n";
     m_imageModel->requestThumbnails(first, last);
+}
+
+void MainWindow::showPreview(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    QString path = m_imageModel->filePath(index);
+
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    QImage image = reader.read();
+
+    m_previewLabel->setPixmap(
+        QPixmap::fromImage(image).scaled(
+            m_previewLabel->size(),
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation));
 }

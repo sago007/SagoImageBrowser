@@ -1,5 +1,6 @@
 #include "thumbnailworker.h"
 #include <QImageReader>
+#include <QPainter>
 
 ThumbnailWorker::ThumbnailWorker(const QString &path,
                                  int row,
@@ -26,13 +27,18 @@ void ThumbnailWorker::run()
 
     if (!image.isNull())
     {
-        // Scale to cover the 128x128 area, then center-crop
+        // Scale to fit within 128x128 keeping aspect ratio
         QImage scaled = image.scaled(128, 128,
-                                     Qt::KeepAspectRatioByExpanding,
+                                     Qt::KeepAspectRatio,
                                      Qt::SmoothTransformation);
-        int x = (scaled.width()  - 128) / 2;
-        int y = (scaled.height() - 128) / 2;
-        QImage thumb = scaled.copy(x, y, 128, 128);
+        // Center on a 128x128 canvas with transparent/white fill
+        QImage thumb(128, 128, QImage::Format_ARGB32_Premultiplied);
+        thumb.fill(Qt::transparent);
+        int x = (128 - scaled.width())  / 2;
+        int y = (128 - scaled.height()) / 2;
+        QPainter painter(&thumb);
+        painter.drawImage(x, y, scaled);
+        painter.end();
         emit finished(m_row, thumb);
     }
 }

@@ -19,6 +19,7 @@ private:
     void setupUi();
     void setupConnections();
     void loadVisibleThumbnails();
+    void showPreview(const QModelIndex &index);
 
     bool eventFilter(QObject *obj, QEvent *event) override;
 
