@@ -10,20 +10,25 @@ ImageModel::ImageModel(QObject *parent)
 {
     m_threadPool.setMaxThreadCount(QThread::idealThreadCount());
 
-    // Simple gray placeholder
     m_placeholder = QPixmap(128, 128);
     m_placeholder.fill(Qt::lightGray);
 }
 
 ImageModel::~ImageModel()
 {
+    m_cancelFlag = true;
     m_threadPool.waitForDone();
 }
 
 void ImageModel::setDirectory(const QString &path)
 {
+    m_cancelFlag = true;
+    m_threadPool.waitForDone();
+    m_cancelFlag = false;
+
     beginResetModel();
     m_items.clear();
+    m_pendingRows.clear();
 
     QDir dir(path);
     QStringList filters;
@@ -37,24 +42,56 @@ void ImageModel::setDirectory(const QString &path)
 
     const auto files = dir.entryInfoList();
 
-    int row = 0;
     for (const QFileInfo &file : files)
     {
         m_items.append({file.absoluteFilePath(), m_placeholder, false});
-
-        // Create worker
-        auto *worker = new ThumbnailWorker(file.absoluteFilePath(), row);
-
-        connect(worker, &ThumbnailWorker::finished,
-                this, &ImageModel::thumbnailReady,
-                Qt::QueuedConnection);
-
-        m_threadPool.start(worker);
-
-        row++;
     }
 
     endResetModel();
+}
+
+void ImageModel::requestThumbnails(int firstRow, int lastRow)
+{
+    if (m_items.isEmpty())
+        return;
+
+    firstRow = std::max(0, firstRow);
+    lastRow = std::min(lastRow, static_cast<int>(m_items.size()) - 1);
+
+    for (int row = firstRow; row <= lastRow; ++row)
+    {
+        if (!m_items[row].loaded)
+            queueRow(row);
+    }
+
+    // Optional: preload nearby rows
+    int buffer = 20;
+    for (int row = firstRow - buffer; row < firstRow; ++row)
+        if (row >= 0 && !m_items[row].loaded)
+            queueRow(row);
+
+    for (int row = lastRow + 1; row <= lastRow + buffer; ++row)
+        if (row < m_items.size() && !m_items[row].loaded)
+            queueRow(row);
+}
+
+void ImageModel::queueRow(int row)
+{
+    if (m_pendingRows.contains(row))
+        return;
+
+    m_pendingRows.insert(row);
+
+    auto *worker = new ThumbnailWorker(
+        m_items[row].path,
+        row,
+        &m_cancelFlag);
+
+    connect(worker, &ThumbnailWorker::finished,
+            this, &ImageModel::thumbnailReady,
+            Qt::QueuedConnection);
+
+    m_threadPool.start(worker);
 }
 
 QString ImageModel::filePath(const QModelIndex &index) const
@@ -86,13 +123,17 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
-void ImageModel::thumbnailReady(int row, const QPixmap &pixmap)
+void ImageModel::thumbnailReady(int row, const QImage &image)
 {
+    if (m_cancelFlag)
+        return;
+
     if (row < 0 || row >= m_items.size())
         return;
 
-    m_items[row].thumbnail = pixmap;
+    m_items[row].thumbnail = QPixmap::fromImage(image);
     m_items[row].loaded = true;
+    m_pendingRows.remove(row);
 
     QModelIndex idx = index(row);
     emit dataChanged(idx, idx, {Qt::DecorationRole});

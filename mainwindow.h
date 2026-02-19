@@ -18,6 +18,9 @@ public:
 private:
     void setupUi();
     void setupConnections();
+    void loadVisibleThumbnails();
+
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
     QFileSystemModel *m_dirModel;
     ImageModel *m_imageModel;

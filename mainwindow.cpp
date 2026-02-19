@@ -9,6 +9,10 @@
 #include <QDir>
 #include <QImageReader>
 #include <QHeaderView>
+#include <QScrollBar>
+#include <QTimer>
+#include <QEvent>
+#include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -67,24 +71,59 @@ void MainWindow::setupConnections()
 {
     connect(m_treeView, &QTreeView::clicked, this,
             [this](const QModelIndex &index)
-    {
-        QString path = m_dirModel->filePath(index);
-        m_imageModel->setDirectory(path);
-    });
+            {
+                QString path = m_dirModel->filePath(index);
+                m_imageModel->setDirectory(path);
+                // Defer thumbnail load so the view has time to lay out items
+                QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+            });
 
     connect(m_listView, &QListView::clicked, this,
             [this](const QModelIndex &index)
-    {
-        QString path = m_imageModel->filePath(index);
+            {
+                QString path = m_imageModel->filePath(index);
 
-        QImageReader reader(path);
-        reader.setAutoTransform(true);
-        QImage image = reader.read();
+                QImageReader reader(path);
+                reader.setAutoTransform(true);
+                QImage image = reader.read();
 
-        m_previewLabel->setPixmap(
-            QPixmap::fromImage(image).scaled(
-                m_previewLabel->size(),
-                Qt::KeepAspectRatio,
-                Qt::SmoothTransformation));
-    });
+                m_previewLabel->setPixmap(
+                    QPixmap::fromImage(image).scaled(
+                        m_previewLabel->size(),
+                        Qt::KeepAspectRatio,
+                        Qt::SmoothTransformation));
+            });
+
+    connect(m_listView->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, [this]()
+            { loadVisibleThumbnails(); });
+
+    // Also catch resize — visible range changes when the viewport is resized
+    m_listView->viewport()->installEventFilter(this);
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == m_listView->viewport() && event->type() == QEvent::Resize)
+        QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+
+    return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::loadVisibleThumbnails()
+{
+    QModelIndex topLeft = m_listView->indexAt(QPoint(0, 0));
+    QModelIndex bottomRight = m_listView->indexAt(
+        QPoint(m_listView->viewport()->width() - 1,
+               m_listView->viewport()->height() - 1));
+
+    int first = topLeft.isValid() ? topLeft.row() : 0;
+    int last = bottomRight.isValid() ? bottomRight.row()
+                                     : m_imageModel->rowCount() - 1;
+
+    if (last < 0)
+        return;
+
+    std::cout << "loadVisibleThumbnails: " << first << " - " << last << "\n";
+    m_imageModel->requestThumbnails(first, last);
 }
