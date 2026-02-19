@@ -43,9 +43,12 @@ void MainWindow::setupUi()
     m_listView->setModel(m_imageModel);
     m_listView->setViewMode(QListView::IconMode);
     m_listView->setIconSize(QSize(128, 128));
+    m_listView->setGridSize(QSize(148, 168));
     m_listView->setResizeMode(QListView::Adjust);
     m_listView->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_listView->setSpacing(10);
+    m_listView->setSpacing(4);
+    m_listView->setWordWrap(true);
+    m_listView->setTextElideMode(Qt::ElideRight);
 
     // Preview pane (right)
     m_previewLabel = new QLabel;

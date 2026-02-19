@@ -26,9 +26,13 @@ void ThumbnailWorker::run()
 
     if (!image.isNull())
     {
-        QImage thumb = image.scaled(128, 128,
-                                    Qt::KeepAspectRatio,
-                                    Qt::SmoothTransformation);
+        // Scale to cover the 128x128 area, then center-crop
+        QImage scaled = image.scaled(128, 128,
+                                     Qt::KeepAspectRatioByExpanding,
+                                     Qt::SmoothTransformation);
+        int x = (scaled.width()  - 128) / 2;
+        int y = (scaled.height() - 128) / 2;
+        QImage thumb = scaled.copy(x, y, 128, 128);
         emit finished(m_row, thumb);
     }
 }
