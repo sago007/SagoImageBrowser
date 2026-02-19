@@ -1,4 +1,5 @@
 #include "imagemodel.h"
+#include "thumbnailworker.h"
 
 #include <QDir>
 #include <QImageReader>
@@ -7,6 +8,16 @@
 ImageModel::ImageModel(QObject *parent)
     : QAbstractListModel(parent)
 {
+    m_threadPool.setMaxThreadCount(QThread::idealThreadCount());
+
+    // Simple gray placeholder
+    m_placeholder = QPixmap(128, 128);
+    m_placeholder.fill(Qt::lightGray);
+}
+
+ImageModel::~ImageModel()
+{
+    m_threadPool.waitForDone();
 }
 
 void ImageModel::setDirectory(const QString &path)
@@ -24,17 +35,23 @@ void ImageModel::setDirectory(const QString &path)
     dir.setNameFilters(filters);
     dir.setFilter(QDir::Files);
 
-    for (const QFileInfo &file : dir.entryInfoList())
+    const auto files = dir.entryInfoList();
+
+    int row = 0;
+    for (const QFileInfo &file : files)
     {
-        QImageReader reader(file.absoluteFilePath());
-        reader.setAutoTransform(true);
+        m_items.append({file.absoluteFilePath(), m_placeholder, false});
 
-        QImage image = reader.read();
-        QPixmap thumb = QPixmap::fromImage(
-            image.scaled(128, 128, Qt::KeepAspectRatio,
-                         Qt::SmoothTransformation));
+        // Create worker
+        auto *worker = new ThumbnailWorker(file.absoluteFilePath(), row);
 
-        m_items.append({file.absoluteFilePath(), thumb});
+        connect(worker, &ThumbnailWorker::finished,
+                this, &ImageModel::thumbnailReady,
+                Qt::QueuedConnection);
+
+        m_threadPool.start(worker);
+
+        row++;
     }
 
     endResetModel();
@@ -67,4 +84,16 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const
         return QFileInfo(item.path).fileName();
 
     return {};
+}
+
+void ImageModel::thumbnailReady(int row, const QPixmap &pixmap)
+{
+    if (row < 0 || row >= m_items.size())
+        return;
+
+    m_items[row].thumbnail = pixmap;
+    m_items[row].loaded = true;
+
+    QModelIndex idx = index(row);
+    emit dataChanged(idx, idx, {Qt::DecorationRole});
 }
