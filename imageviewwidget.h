@@ -16,6 +16,8 @@ public:
 
 signals:
     void closeRequested();
+    void nextRequested();
+    void previousRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

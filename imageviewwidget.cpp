@@ -46,5 +46,19 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
+    if (event->key() == Qt::Key_PageDown)
+    {
+        emit nextRequested();
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_PageUp)
+    {
+        emit previousRequested();
+        event->accept();
+        return;
+    }
+
     QWidget::keyPressEvent(event);
 }

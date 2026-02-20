@@ -107,6 +107,28 @@ void MainWindow::setupConnections()
     connect(m_imageView, &ImageViewWidget::closeRequested,
             this, &MainWindow::leaveSingleImageMode);
 
+    connect(m_imageView, &ImageViewWidget::nextRequested, this, [this]() {
+        QModelIndex cur = m_listView->currentIndex();
+        int next = cur.isValid() ? cur.row() + 1 : 0;
+        if (next < m_imageModel->rowCount())
+        {
+            QModelIndex idx = m_imageModel->index(next);
+            m_listView->setCurrentIndex(idx);
+            enterSingleImageMode(idx);
+        }
+    });
+
+    connect(m_imageView, &ImageViewWidget::previousRequested, this, [this]() {
+        QModelIndex cur = m_listView->currentIndex();
+        int prev = cur.isValid() ? cur.row() - 1 : 0;
+        if (prev >= 0)
+        {
+            QModelIndex idx = m_imageModel->index(prev);
+            m_listView->setCurrentIndex(idx);
+            enterSingleImageMode(idx);
+        }
+    });
+
     connect(m_listView->verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this]()
             { loadVisibleThumbnails(); });
