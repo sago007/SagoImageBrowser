@@ -5,8 +5,10 @@
 class QTreeView;
 class QListView;
 class QLabel;
+class QStackedWidget;
 class QFileSystemModel;
 class ImageModel;
+class ImageViewWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -20,7 +22,10 @@ private:
     void setupConnections();
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
+    void enterSingleImageMode(const QModelIndex &index);
+    void leaveSingleImageMode();
 
+    void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
     QFileSystemModel *m_dirModel;
@@ -29,4 +34,9 @@ private:
     QTreeView *m_treeView;
     QListView *m_listView;
     QLabel *m_previewLabel;
+
+    QStackedWidget *m_stack;
+    QWidget *m_browserPage;
+    ImageViewWidget *m_imageView;
+    bool m_wasFullScreen = false;
 };

@@ -1,17 +1,20 @@
 #include "mainwindow.h"
 #include "imagemodel.h"
+#include "imageviewwidget.h"
 
 #include <QFileSystemModel>
 #include <QTreeView>
 #include <QListView>
 #include <QLabel>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QDir>
 #include <QImageReader>
 #include <QHeaderView>
 #include <QScrollBar>
 #include <QTimer>
 #include <QEvent>
+#include <QKeyEvent>
 #include <QItemSelectionModel>
 #include <iostream>
 
@@ -68,7 +71,17 @@ void MainWindow::setupUi()
     mainSplitter->addWidget(rightSplitter);
     mainSplitter->setStretchFactor(1, 1);
 
-    setCentralWidget(mainSplitter);
+    m_browserPage = mainSplitter;
+
+    // Single image view
+    m_imageView = new ImageViewWidget;
+
+    // Stack to switch between browser and single image
+    m_stack = new QStackedWidget;
+    m_stack->addWidget(m_browserPage);
+    m_stack->addWidget(m_imageView);
+
+    setCentralWidget(m_stack);
 }
 
 void MainWindow::setupConnections()
@@ -87,6 +100,12 @@ void MainWindow::setupConnections()
 
     connect(m_listView->selectionModel(), &QItemSelectionModel::currentChanged,
             this, [this](const QModelIndex &current) { showPreview(current); });
+
+    connect(m_listView, &QListView::doubleClicked, this,
+            [this](const QModelIndex &index) { enterSingleImageMode(index); });
+
+    connect(m_imageView, &ImageViewWidget::closeRequested,
+            this, &MainWindow::leaveSingleImageMode);
 
     connect(m_listView->verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this]()
@@ -138,4 +157,54 @@ void MainWindow::showPreview(const QModelIndex &index)
             m_previewLabel->size(),
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation));
+}
+
+void MainWindow::enterSingleImageMode(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    QString path = m_imageModel->filePath(index);
+    m_imageView->setImage(path);
+    m_stack->setCurrentWidget(m_imageView);
+    m_imageView->setFocus();
+}
+
+void MainWindow::leaveSingleImageMode()
+{
+    if (isFullScreen())
+    {
+        if (m_wasFullScreen)
+            showFullScreen();
+        else
+            showNormal();
+    }
+    m_stack->setCurrentWidget(m_browserPage);
+    m_listView->setFocus();
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_F11 && m_stack->currentWidget() == m_imageView)
+    {
+        if (isFullScreen())
+            showNormal();
+        else
+            showFullScreen();
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Return && m_stack->currentWidget() == m_browserPage)
+    {
+        QModelIndex current = m_listView->currentIndex();
+        if (current.isValid())
+        {
+            enterSingleImageMode(current);
+            event->accept();
+            return;
+        }
+    }
+
+    QMainWindow::keyPressEvent(event);
 }

@@ -14,6 +14,8 @@ qt_add_executable(ImageBrowser
     imagemodel.h
     thumbnailworker.cpp
     thumbnailworker.h
+    imageviewwidget.cpp
+    imageviewwidget.h
 )
 
 target_link_libraries(ImageBrowser PRIVATE Qt6::Widgets)
