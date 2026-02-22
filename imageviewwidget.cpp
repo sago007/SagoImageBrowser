@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QImageReader>
 #include <algorithm>
 
@@ -25,6 +26,7 @@ void ImageViewWidget::setImage(const QString &path)
 
     m_zoomMode = FitToScreen;
     m_zoomFactor = 1.0;
+    m_offset = QPoint(0, 0);
     update();
 }
 
@@ -51,8 +53,10 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
     }
     }
 
-    int x = (width()  - drawn.width())  / 2;
-    int y = (height() - drawn.height()) / 2;
+    clampOffset(drawn.width(), drawn.height());
+
+    int x = (width()  - drawn.width())  / 2 + m_offset.x();
+    int y = (height() - drawn.height()) / 2 + m_offset.y();
     painter.drawPixmap(x, y, drawn);
 }
 
@@ -75,6 +79,37 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_PageUp)
     {
         emit previousRequested();
+        event->accept();
+        return;
+    }
+
+    // Arrow keys for panning
+    constexpr int panStep = 50;
+    if (event->key() == Qt::Key_Left)
+    {
+        m_offset.rx() += panStep;
+        update();
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Right)
+    {
+        m_offset.rx() -= panStep;
+        update();
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Up)
+    {
+        m_offset.ry() += panStep;
+        update();
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Down)
+    {
+        m_offset.ry() -= panStep;
+        update();
         event->accept();
         return;
     }
@@ -147,5 +182,56 @@ void ImageViewWidget::zoomOriginal()
 void ImageViewWidget::zoomFitToScreen()
 {
     m_zoomMode = FitToScreen;
+    m_offset = QPoint(0, 0);
     update();
+}
+
+void ImageViewWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_dragging = true;
+        m_dragStart = event->pos();
+        m_offsetAtDragStart = m_offset;
+        setCursor(Qt::ClosedHandCursor);
+        event->accept();
+    }
+}
+
+void ImageViewWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_dragging) {
+        m_offset = m_offsetAtDragStart + (event->pos() - m_dragStart);
+        update();
+        event->accept();
+    }
+}
+
+void ImageViewWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && m_dragging) {
+        m_dragging = false;
+        setCursor(Qt::ArrowCursor);
+        event->accept();
+    }
+}
+
+void ImageViewWidget::clampOffset(int imgW, int imgH)
+{
+    // Only allow panning when the drawn image exceeds the widget
+    int overflowX = imgW - width();
+    int overflowY = imgH - height();
+
+    if (overflowX <= 0)
+        m_offset.rx() = 0;
+    else {
+        int limit = overflowX / 2;
+        m_offset.rx() = std::clamp(m_offset.x(), -limit, limit);
+    }
+
+    if (overflowY <= 0)
+        m_offset.ry() = 0;
+    else {
+        int limit = overflowY / 2;
+        m_offset.ry() = std::clamp(m_offset.y(), -limit, limit);
+    }
 }
