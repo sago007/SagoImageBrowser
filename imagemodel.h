@@ -6,6 +6,7 @@
 #include <QThreadPool>
 #include <QSet>
 #include <atomic>
+#include <QIcon>
 
 class ThumbnailWorker;
 
@@ -19,6 +20,8 @@ public:
 
     void setDirectory(const QString &path);
     QString filePath(const QModelIndex &index) const;
+    bool isFolder(const QModelIndex &index) const;
+    QString currentDirectory() const;
 
     void requestThumbnails(int firstRow, int lastRow);
 
@@ -31,8 +34,10 @@ private:
     struct Item
     {
         QString path;
+        QString displayName;
         QPixmap thumbnail;
         bool loaded = false;
+        bool isFolder = false;
     };
 
     void queueRow(int row);
@@ -43,4 +48,6 @@ private:
 
     QSet<int> m_pendingRows;
     std::atomic_bool m_cancelFlag{false};
+    QIcon m_folderIcon;
+    QString m_currentDir;
 };

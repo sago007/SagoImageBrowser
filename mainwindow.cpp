@@ -125,7 +125,19 @@ void MainWindow::setupConnections()
             this, [this](const QModelIndex &current) { showPreview(current); });
 
     connect(m_listView, &QListView::doubleClicked, this,
-            [this](const QModelIndex &index) { enterSingleImageMode(index); });
+            [this](const QModelIndex &index) {
+                if (m_imageModel->isFolder(index)) {
+                    QString path = m_imageModel->filePath(index);
+                    m_imageModel->setDirectory(path);
+                    // Update tree view selection to match
+                    QModelIndex dirIdx = m_dirModel->index(path);
+                    if (dirIdx.isValid())
+                        m_treeView->setCurrentIndex(dirIdx);
+                    QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+                } else {
+                    enterSingleImageMode(index);
+                }
+            });
 
     connect(m_imageView, &ImageViewWidget::closeRequested,
             this, &MainWindow::leaveSingleImageMode);
@@ -133,6 +145,8 @@ void MainWindow::setupConnections()
     connect(m_imageView, &ImageViewWidget::nextRequested, this, [this]() {
         QModelIndex cur = m_listView->currentIndex();
         int next = cur.isValid() ? cur.row() + 1 : 0;
+        while (next < m_imageModel->rowCount() && m_imageModel->isFolder(m_imageModel->index(next)))
+            ++next;
         if (next < m_imageModel->rowCount())
         {
             QModelIndex idx = m_imageModel->index(next);
@@ -144,6 +158,8 @@ void MainWindow::setupConnections()
     connect(m_imageView, &ImageViewWidget::previousRequested, this, [this]() {
         QModelIndex cur = m_listView->currentIndex();
         int prev = cur.isValid() ? cur.row() - 1 : 0;
+        while (prev >= 0 && m_imageModel->isFolder(m_imageModel->index(prev)))
+            --prev;
         if (prev >= 0)
         {
             QModelIndex idx = m_imageModel->index(prev);
@@ -245,7 +261,16 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         QModelIndex current = m_listView->currentIndex();
         if (current.isValid())
         {
-            enterSingleImageMode(current);
+            if (m_imageModel->isFolder(current)) {
+                QString path = m_imageModel->filePath(current);
+                m_imageModel->setDirectory(path);
+                QModelIndex dirIdx = m_dirModel->index(path);
+                if (dirIdx.isValid())
+                    m_treeView->setCurrentIndex(dirIdx);
+                QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+            } else {
+                enterSingleImageMode(current);
+            }
             event->accept();
             return;
         }

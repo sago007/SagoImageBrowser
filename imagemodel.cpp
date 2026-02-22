@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QImageReader>
 #include <QFileInfo>
+#include <QFileIconProvider>
 
 ImageModel::ImageModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -12,6 +13,9 @@ ImageModel::ImageModel(QObject *parent)
 
     m_placeholder = QPixmap(128, 128);
     m_placeholder.fill(Qt::lightGray);
+
+    QFileIconProvider iconProvider;
+    m_folderIcon = iconProvider.icon(QFileIconProvider::Folder);
 }
 
 ImageModel::~ImageModel()
@@ -29,8 +33,22 @@ void ImageModel::setDirectory(const QString &path)
     beginResetModel();
     m_items.clear();
     m_pendingRows.clear();
+    m_currentDir = path;
 
     QDir dir(path);
+
+    // Add subdirectories first
+    dir.setFilter(QDir::AllDirs | QDir::NoDot);
+    dir.setSorting(QDir::Name);
+    const auto dirs = dir.entryInfoList();
+    QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
+    for (const QFileInfo &d : dirs)
+    {
+        QString name = d.fileName();  // preserves ".." for the parent entry
+        m_items.append({d.absoluteFilePath(), name, folderPixmap, true, true});
+    }
+
+    // Then add image files
     QStringList filters;
 
     const auto formats = QImageReader::supportedImageFormats();
@@ -39,12 +57,13 @@ void ImageModel::setDirectory(const QString &path)
 
     dir.setNameFilters(filters);
     dir.setFilter(QDir::Files);
+    dir.setSorting(QDir::Name);
 
     const auto files = dir.entryInfoList();
 
     for (const QFileInfo &file : files)
     {
-        m_items.append({file.absoluteFilePath(), m_placeholder, false});
+        m_items.append({file.absoluteFilePath(), file.fileName(), m_placeholder, false, false});
     }
 
     endResetModel();
@@ -60,18 +79,18 @@ void ImageModel::requestThumbnails(int firstRow, int lastRow)
 
     for (int row = firstRow; row <= lastRow; ++row)
     {
-        if (!m_items[row].loaded)
+        if (!m_items[row].loaded && !m_items[row].isFolder)
             queueRow(row);
     }
 
     // Optional: preload nearby rows
     int buffer = 20;
     for (int row = firstRow - buffer; row < firstRow; ++row)
-        if (row >= 0 && !m_items[row].loaded)
+        if (row >= 0 && !m_items[row].loaded && !m_items[row].isFolder)
             queueRow(row);
 
     for (int row = lastRow + 1; row <= lastRow + buffer; ++row)
-        if (row < m_items.size() && !m_items[row].loaded)
+        if (row < m_items.size() && !m_items[row].loaded && !m_items[row].isFolder)
             queueRow(row);
 }
 
@@ -102,6 +121,18 @@ QString ImageModel::filePath(const QModelIndex &index) const
     return m_items[index.row()].path;
 }
 
+bool ImageModel::isFolder(const QModelIndex &index) const
+{
+    if (!index.isValid() || index.row() >= m_items.size())
+        return false;
+    return m_items[index.row()].isFolder;
+}
+
+QString ImageModel::currentDirectory() const
+{
+    return m_currentDir;
+}
+
 int ImageModel::rowCount(const QModelIndex &) const
 {
     return m_items.size();
@@ -118,7 +149,7 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const
         return item.thumbnail;
 
     if (role == Qt::DisplayRole)
-        return QFileInfo(item.path).fileName();
+        return item.displayName;
 
     return {};
 }
