@@ -9,6 +9,9 @@
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QDir>
+#include <QComboBox>
+#include <QVBoxLayout>
+#include <QStandardPaths>
 #include <QImageReader>
 #include <QHeaderView>
 #include <QScrollBar>
@@ -32,6 +35,12 @@ void MainWindow::setupUi()
     m_dirModel->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot);
     m_dirModel->setRootPath(QDir::homePath());
 
+    // Root chooser combo box
+    m_rootCombo = new QComboBox;
+    m_rootCombo->addItem("Home",     QDir::homePath());
+    m_rootCombo->addItem("Pictures", QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
+    m_rootCombo->addItem("File System", QDir::rootPath());
+
     m_treeView = new QTreeView;
     m_treeView->setModel(m_dirModel);
     m_treeView->setRootIndex(m_dirModel->index(QDir::homePath()));
@@ -39,6 +48,13 @@ void MainWindow::setupUi()
     m_treeView->setColumnHidden(1, true);
     m_treeView->setColumnHidden(2, true);
     m_treeView->setColumnHidden(3, true);
+
+    // Left pane: combo + tree inside a container widget
+    QWidget *leftPane = new QWidget;
+    QVBoxLayout *leftLayout = new QVBoxLayout(leftPane);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->addWidget(m_rootCombo);
+    leftLayout->addWidget(m_treeView);
 
     // Thumbnail model (center pane)
     m_imageModel = new ImageModel(this);
@@ -67,7 +83,7 @@ void MainWindow::setupUi()
     rightSplitter->setStretchFactor(1, 2);
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
-    mainSplitter->addWidget(m_treeView);
+    mainSplitter->addWidget(leftPane);
     mainSplitter->addWidget(rightSplitter);
     mainSplitter->setStretchFactor(1, 1);
 
@@ -86,6 +102,13 @@ void MainWindow::setupUi()
 
 void MainWindow::setupConnections()
 {
+    connect(m_rootCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int index) {
+                QString rootPath = m_rootCombo->itemData(index).toString();
+                m_dirModel->setRootPath(rootPath);
+                m_treeView->setRootIndex(m_dirModel->index(rootPath));
+            });
+
     connect(m_treeView, &QTreeView::clicked, this,
             [this](const QModelIndex &index)
             {

@@ -7,6 +7,7 @@ class QListView;
 class QLabel;
 class QStackedWidget;
 class QFileSystemModel;
+class QComboBox;
 class ImageModel;
 class ImageViewWidget;
 
@@ -32,6 +33,7 @@ private:
     ImageModel *m_imageModel;
 
     QTreeView *m_treeView;
+    QComboBox *m_rootCombo;
     QListView *m_listView;
     QLabel *m_previewLabel;
 
