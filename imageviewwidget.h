@@ -10,9 +10,15 @@ class ImageViewWidget : public QWidget
     Q_OBJECT
 
 public:
+    enum ZoomMode { FitToScreen, OriginalSize, CustomZoom };
+
     explicit ImageViewWidget(QWidget *parent = nullptr);
 
     void setImage(const QString &path);
+    void zoomIn();
+    void zoomOut();
+    void zoomOriginal();
+    void zoomFitToScreen();
 
 signals:
     void closeRequested();
@@ -25,4 +31,6 @@ protected:
 
 private:
     QPixmap m_pixmap;
+    ZoomMode m_zoomMode = FitToScreen;
+    double m_zoomFactor = 1.0;
 };
