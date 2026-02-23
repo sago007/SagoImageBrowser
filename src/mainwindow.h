@@ -28,6 +28,7 @@ private:
 
     void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
     QFileSystemModel *m_dirModel;
     ImageModel *m_imageModel;

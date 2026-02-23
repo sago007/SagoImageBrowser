@@ -18,6 +18,7 @@
 #include <QTimer>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QCloseEvent>
 #include <QItemSelectionModel>
 #include <iostream>
 
@@ -292,4 +293,16 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (m_stack->currentWidget() == m_imageView)
+    {
+        leaveSingleImageMode();
+        event->ignore();
+        return;
+    }
+
+    QMainWindow::closeEvent(event);
 }
