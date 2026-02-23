@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "imagemodel.h"
 #include "imageviewwidget.h"
+#include "preferencesdialog.h"
 
 #include <QFileSystemModel>
 #include <QTreeView>
@@ -20,13 +21,19 @@
 #include <QKeyEvent>
 #include <QCloseEvent>
 #include <QItemSelectionModel>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
+#include <QSettings>
 #include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setupUi();
+    setupMenuBar();
     setupConnections();
+    loadPreferences();
 }
 
 void MainWindow::setupUi()
@@ -99,6 +106,13 @@ void MainWindow::setupUi()
     m_stack->addWidget(m_imageView);
 
     setCentralWidget(m_stack);
+}
+
+void MainWindow::setupMenuBar()
+{
+    QMenu *editMenu = menuBar()->addMenu("&Edit");
+    QAction *preferencesAction = editMenu->addAction("&Preferences");
+    connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
 }
 
 void MainWindow::setupConnections()
@@ -229,6 +243,7 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     m_wasFullScreen = isFullScreen();
     m_wasMaximized = isMaximized();
 
+    m_imageView->setBackgroundColor(m_backgroundColorPreference);
     QString path = m_imageModel->filePath(index);
     m_imageView->setImage(path);
     m_stack->setCurrentWidget(m_imageView);
@@ -304,5 +319,32 @@ void MainWindow::closeEvent(QCloseEvent *event)
         return;
     }
 
+    savePreferences();
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::loadPreferences()
+{
+    QSettings settings("SagoImageBrowser", "SagoImageBrowser");
+    m_backgroundColorPreference = settings.value("backgroundColor", "black").toString();
+    m_imageView->setBackgroundColor(m_backgroundColorPreference);
+}
+
+void MainWindow::savePreferences()
+{
+    QSettings settings("SagoImageBrowser", "SagoImageBrowser");
+    settings.setValue("backgroundColor", m_backgroundColorPreference);
+}
+
+void MainWindow::onPreferencesTriggered()
+{
+    PreferencesDialog dialog(this);
+    dialog.setBackgroundColor(m_backgroundColorPreference);
+
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        m_backgroundColorPreference = dialog.getBackgroundColor();
+        m_imageView->setBackgroundColor(m_backgroundColorPreference);
+        savePreferences();
+    }
 }

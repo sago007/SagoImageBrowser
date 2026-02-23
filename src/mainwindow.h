@@ -10,6 +10,7 @@ class QFileSystemModel;
 class QComboBox;
 class ImageModel;
 class ImageViewWidget;
+class PreferencesDialog;
 
 class MainWindow : public QMainWindow
 {
@@ -21,6 +22,10 @@ public:
 private:
     void setupUi();
     void setupConnections();
+    void setupMenuBar();
+    void loadPreferences();
+    void savePreferences();
+    void onPreferencesTriggered();
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
     void enterSingleImageMode(const QModelIndex &index);
@@ -39,6 +44,7 @@ private:
     QLabel *m_previewLabel;
 
     QStackedWidget *m_stack;
+    QString m_backgroundColorPreference = "black";
     QWidget *m_browserPage;
     ImageViewWidget *m_imageView;
     bool m_wasFullScreen = false;

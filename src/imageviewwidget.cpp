@@ -4,13 +4,15 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QImageReader>
+#include <QPalette>
 #include <algorithm>
 
 ImageViewWidget::ImageViewWidget(QWidget *parent)
     : QWidget(parent)
 {
     setFocusPolicy(Qt::StrongFocus);
-    setStyleSheet("background-color: black;");
+    setAutoFillBackground(true);
+    setBackgroundColor("black");
 }
 
 void ImageViewWidget::setImage(const QString &path)
@@ -27,6 +29,15 @@ void ImageViewWidget::setImage(const QString &path)
     m_zoomMode = FitToScreen;
     m_zoomFactor = 1.0;
     m_offset = QPoint(0, 0);
+    update();
+}
+
+void ImageViewWidget::setBackgroundColor(const QString &color)
+{
+    m_backgroundColor = color;
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, QColor(color));
+    setPalette(pal);
     update();
 }
 

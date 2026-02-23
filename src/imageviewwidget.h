@@ -16,6 +16,7 @@ public:
     explicit ImageViewWidget(QWidget *parent = nullptr);
 
     void setImage(const QString &path);
+    void setBackgroundColor(const QString &color);
     void zoomIn();
     void zoomOut();
     void zoomOriginal();
@@ -39,6 +40,7 @@ private:
     QPixmap m_pixmap;
     ZoomMode m_zoomMode = FitToScreen;
     double m_zoomFactor = 1.0;
+    QString m_backgroundColor = "black";
 
     // Panning state
     QPoint m_offset;        // current pan offset (pixels)
