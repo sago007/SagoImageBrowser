@@ -40,12 +40,12 @@ cmake ..
 make
 ```
 
-The compiled executable will be at `./build/ImageBrowser`
+The compiled executable will be at `./build/SagoImageBrowser`
 
 ## Running
 
 ```bash
-./build/ImageBrowser
+./build/SagoImageBrowser
 ```
 
 ## Project Structure
