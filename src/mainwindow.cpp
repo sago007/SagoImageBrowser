@@ -225,6 +225,9 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     if (!index.isValid())
         return;
 
+    m_wasFullScreen = isFullScreen();
+    m_wasMaximized = isMaximized();
+
     QString path = m_imageModel->filePath(index);
     m_imageView->setImage(path);
     m_stack->setCurrentWidget(m_imageView);
@@ -233,12 +236,16 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
 
 void MainWindow::leaveSingleImageMode()
 {
-    if (isFullScreen())
-    {
-        if (m_wasFullScreen)
+    if (isFullScreen()) {
+        if (m_wasFullScreen) {
             showFullScreen();
-        else
+        }
+        else if (m_wasMaximized) {
+            showMaximized();
+        }
+        else {
             showNormal();
+        }
     }
     m_stack->setCurrentWidget(m_browserPage);
     m_listView->setFocus();
@@ -249,9 +256,17 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_F11 && m_stack->currentWidget() == m_imageView)
     {
         if (isFullScreen())
-            showNormal();
-        else
+        {
+            if (m_wasMaximized) {
+                showMaximized();
+            }
+            else {
+                showNormal();
+            }
+        }
+        else {
             showFullScreen();
+        }
         event->accept();
         return;
     }

@@ -41,4 +41,5 @@ private:
     QWidget *m_browserPage;
     ImageViewWidget *m_imageView;
     bool m_wasFullScreen = false;
+    bool m_wasMaximized = false;
 };
