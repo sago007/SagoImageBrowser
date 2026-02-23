@@ -110,7 +110,8 @@ void MainWindow::setupUi()
 
 void MainWindow::setupMenuBar()
 {
-    QMenu *editMenu = menuBar()->addMenu("&Edit");
+    m_menuBar = menuBar();
+    QMenu *editMenu = m_menuBar->addMenu("&Edit");
     QAction *preferencesAction = editMenu->addAction("&Preferences");
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
 }
@@ -265,49 +266,51 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     if (!index.isValid())
         return;
 
-    m_wasFullScreen = isFullScreen();
-    m_wasMaximized = isMaximized();
-
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
     QString path = m_imageModel->filePath(index);
     m_imageView->setImage(path);
     m_stack->setCurrentWidget(m_imageView);
     m_imageView->setFocus();
+
+    if (m_imageViewWasFullScreen) {
+        setFullScreenMode(true);
+        m_imageViewWasFullScreen = false;
+    }
 }
 
 void MainWindow::leaveSingleImageMode()
 {
     if (isFullScreen()) {
-        if (m_wasFullScreen) {
-            showFullScreen();
-        }
-        else if (m_wasMaximized) {
-            showMaximized();
-        }
-        else {
-            showNormal();
-        }
+        m_imageViewWasFullScreen = true;
+        setFullScreenMode(false);
     }
     m_stack->setCurrentWidget(m_browserPage);
     m_listView->setFocus();
+}
+
+void MainWindow::setFullScreenMode(bool fullScreen)
+{
+    if (fullScreen == isFullScreen())
+        return;
+
+    if (fullScreen) {
+        m_wasMaximized = isMaximized();
+        m_menuBar->hide();
+        showFullScreen();
+    } else {
+        m_menuBar->show();
+        if (m_wasMaximized)
+            showMaximized();
+        else
+            showNormal();
+    }
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_F11 && m_stack->currentWidget() == m_imageView)
     {
-        if (isFullScreen())
-        {
-            if (m_wasMaximized) {
-                showMaximized();
-            }
-            else {
-                showNormal();
-            }
-        }
-        else {
-            showFullScreen();
-        }
+        setFullScreenMode(!isFullScreen());
         event->accept();
         return;
     }

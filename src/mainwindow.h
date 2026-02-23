@@ -6,6 +6,7 @@ class QTreeView;
 class QListView;
 class QLabel;
 class QStackedWidget;
+class QMenuBar;
 class QFileSystemModel;
 class QComboBox;
 class ImageModel;
@@ -28,6 +29,7 @@ private:
     void onPreferencesTriggered();
     void navigateToFolder(const QString &path);
     void selectPreviousFolderIfExists();
+    void setFullScreenMode(bool fullScreen);
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
     void enterSingleImageMode(const QModelIndex &index);
@@ -49,7 +51,7 @@ private:
     QString m_backgroundColorPreference = "black";
     QWidget *m_browserPage;
     ImageViewWidget *m_imageView;
-    bool m_wasFullScreen = false;
     bool m_wasMaximized = false;
+    bool m_imageViewWasFullScreen = false;
     QString m_previousFolderPath;
-};
+    QMenuBar *m_menuBar = nullptr;};
