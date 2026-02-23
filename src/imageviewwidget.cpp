@@ -73,7 +73,7 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
 
 void ImageViewWidget::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_Escape)
+    if (event->key() == Qt::Key_Escape || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     {
         emit closeRequested();
         event->accept();
@@ -222,6 +222,14 @@ void ImageViewWidget::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && m_dragging) {
         m_dragging = false;
         setCursor(Qt::ArrowCursor);
+        event->accept();
+    }
+}
+
+void ImageViewWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        emit closeRequested();
         event->accept();
     }
 }
