@@ -7,15 +7,15 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_add_executable(ImageBrowser
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    imagemodel.cpp
-    imagemodel.h
-    thumbnailworker.cpp
-    thumbnailworker.h
-    imageviewwidget.cpp
-    imageviewwidget.h
+    src/main.cpp
+    src/mainwindow.cpp
+    src/mainwindow.h
+    src/imagemodel.cpp
+    src/imagemodel.h
+    src/thumbnailworker.cpp
+    src/thumbnailworker.h
+    src/imageviewwidget.cpp
+    src/imageviewwidget.h
 )
 
 target_link_libraries(ImageBrowser PRIVATE Qt6::Widgets)
