@@ -19,10 +19,15 @@ void ImageViewWidget::setImage(const QString &path)
 {
     QImageReader reader(path);
     reader.setAutoTransform(true);
+    reader.setDecideFormatFromContent(true);
     QImage image = reader.read();
 
-    if (!image.isNull())
+    if (!image.isNull()) {
+        // Ensure the image is in a high-quality format
+        if (image.format() != QImage::Format_RGB32 && image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_ARGB32_Premultiplied)
+            image = image.convertToFormat(QImage::Format_ARGB32);
         m_pixmap = QPixmap::fromImage(image);
+    }
     else
         m_pixmap = QPixmap();
 
@@ -47,6 +52,9 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
         return;
 
     QPainter painter(this);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
     QPixmap drawn;
 
     switch (m_zoomMode) {
