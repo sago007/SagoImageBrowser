@@ -26,6 +26,8 @@ private:
     void loadPreferences();
     void savePreferences();
     void onPreferencesTriggered();
+    void navigateToFolder(const QString &path);
+    void selectPreviousFolderIfExists();
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
     void enterSingleImageMode(const QModelIndex &index);
@@ -49,4 +51,5 @@ private:
     ImageViewWidget *m_imageView;
     bool m_wasFullScreen = false;
     bool m_wasMaximized = false;
+    QString m_previousFolderPath;
 };

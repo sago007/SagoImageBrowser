@@ -115,6 +115,38 @@ void MainWindow::setupMenuBar()
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
 }
 
+void MainWindow::navigateToFolder(const QString &path)
+{
+    m_previousFolderPath = m_imageModel->currentDirectory();
+    m_imageModel->setDirectory(path);
+    QModelIndex dirIdx = m_dirModel->index(path);
+    if (dirIdx.isValid())
+        m_treeView->setCurrentIndex(dirIdx);
+    QTimer::singleShot(0, this, [this]() {
+        selectPreviousFolderIfExists();
+        loadVisibleThumbnails();
+    });
+}
+
+void MainWindow::selectPreviousFolderIfExists()
+{
+    if (m_previousFolderPath.isEmpty())
+        return;
+
+    // Find the previous folder in the current directory's contents
+    for (int i = 0; i < m_imageModel->rowCount(); ++i) {
+        QModelIndex idx = m_imageModel->index(i);
+        if (m_imageModel->isFolder(idx)) {
+            QString folderPath = m_imageModel->filePath(idx);
+            if (folderPath == m_previousFolderPath) {
+                m_listView->setCurrentIndex(idx);
+                m_listView->scrollTo(idx);
+                return;
+            }
+        }
+    }
+}
+
 void MainWindow::setupConnections()
 {
     connect(m_rootCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -128,9 +160,7 @@ void MainWindow::setupConnections()
             [this](const QModelIndex &index)
             {
                 QString path = m_dirModel->filePath(index);
-                m_imageModel->setDirectory(path);
-                // Defer thumbnail load so the view has time to lay out items
-                QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+                navigateToFolder(path);
             });
 
     connect(m_listView, &QListView::clicked, this,
@@ -143,12 +173,7 @@ void MainWindow::setupConnections()
             [this](const QModelIndex &index) {
                 if (m_imageModel->isFolder(index)) {
                     QString path = m_imageModel->filePath(index);
-                    m_imageModel->setDirectory(path);
-                    // Update tree view selection to match
-                    QModelIndex dirIdx = m_dirModel->index(path);
-                    if (dirIdx.isValid())
-                        m_treeView->setCurrentIndex(dirIdx);
-                    QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+                    navigateToFolder(path);
                 } else {
                     enterSingleImageMode(index);
                 }
@@ -294,11 +319,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         {
             if (m_imageModel->isFolder(current)) {
                 QString path = m_imageModel->filePath(current);
-                m_imageModel->setDirectory(path);
-                QModelIndex dirIdx = m_dirModel->index(path);
-                if (dirIdx.isValid())
-                    m_treeView->setCurrentIndex(dirIdx);
-                QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+                navigateToFolder(path);
             } else {
                 enterSingleImageMode(current);
             }
