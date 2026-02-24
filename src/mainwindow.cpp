@@ -111,6 +111,10 @@ void MainWindow::setupUi()
 void MainWindow::setupMenuBar()
 {
     m_menuBar = menuBar();
+    m_menuBar->setStyleSheet(
+        "QMenuBar { padding: 1px 2px; }"
+        "QMenuBar::item { padding: 2px 6px; }"
+    );
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
     QAction *preferencesAction = editMenu->addAction("&Preferences");
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
