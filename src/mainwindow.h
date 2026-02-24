@@ -7,6 +7,7 @@ class QListView;
 class QLabel;
 class QStackedWidget;
 class QMenuBar;
+class QDockWidget;
 class QFileSystemModel;
 class QComboBox;
 class ImageModel;
@@ -54,4 +55,9 @@ private:
     bool m_wasMaximized = false;
     bool m_imageViewWasFullScreen = false;
     QString m_previousFolderPath;
-    QMenuBar *m_menuBar = nullptr;};
+    QMenuBar *m_menuBar = nullptr;
+    QDockWidget *m_folderDock = nullptr;
+    QDockWidget *m_previewDock = nullptr;
+    bool m_folderDockWasVisible = true;
+    bool m_previewDockWasVisible = true;
+};

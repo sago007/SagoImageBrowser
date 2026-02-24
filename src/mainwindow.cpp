@@ -7,7 +7,6 @@
 #include <QTreeView>
 #include <QListView>
 #include <QLabel>
-#include <QSplitter>
 #include <QStackedWidget>
 #include <QDir>
 #include <QComboBox>
@@ -21,6 +20,7 @@
 #include <QKeyEvent>
 #include <QCloseEvent>
 #include <QItemSelectionModel>
+#include <QDockWidget>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -81,31 +81,29 @@ void MainWindow::setupUi()
     // Preview pane (right)
     m_previewLabel = new QLabel;
     m_previewLabel->setAlignment(Qt::AlignCenter);
-    m_previewLabel->setMinimumWidth(300);
-
-    // Layout
-    QSplitter *rightSplitter = new QSplitter(Qt::Horizontal);
-    rightSplitter->addWidget(m_listView);
-    rightSplitter->addWidget(m_previewLabel);
-    rightSplitter->setStretchFactor(0, 3);
-    rightSplitter->setStretchFactor(1, 2);
-
-    QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
-    mainSplitter->addWidget(leftPane);
-    mainSplitter->addWidget(rightSplitter);
-    mainSplitter->setStretchFactor(1, 1);
-
-    m_browserPage = mainSplitter;
+    m_previewLabel->setMinimumWidth(200);
 
     // Single image view
     m_imageView = new ImageViewWidget;
 
     // Stack to switch between browser and single image
     m_stack = new QStackedWidget;
-    m_stack->addWidget(m_browserPage);
+    m_stack->addWidget(m_listView);
     m_stack->addWidget(m_imageView);
+    m_browserPage = m_listView;
 
     setCentralWidget(m_stack);
+
+    // Dock widgets — can be dragged, floated and stacked by the user
+    m_folderDock = new QDockWidget(tr("Folders"), this);
+    m_folderDock->setObjectName("FolderDock");
+    m_folderDock->setWidget(leftPane);
+    addDockWidget(Qt::LeftDockWidgetArea, m_folderDock);
+
+    m_previewDock = new QDockWidget(tr("Preview"), this);
+    m_previewDock->setObjectName("PreviewDock");
+    m_previewDock->setWidget(m_previewLabel);
+    addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
 }
 
 void MainWindow::setupMenuBar()
@@ -115,6 +113,10 @@ void MainWindow::setupMenuBar()
         "QMenuBar { padding: 1px 2px; }"
         "QMenuBar::item { padding: 2px 6px; }"
     );
+    QMenu *viewMenu = m_menuBar->addMenu("&View");
+    viewMenu->addAction(m_folderDock->toggleViewAction());
+    viewMenu->addAction(m_previewDock->toggleViewAction());
+
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
     QAction *preferencesAction = editMenu->addAction("&Preferences");
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
@@ -270,6 +272,15 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     if (!index.isValid())
         return;
 
+    // Only save state and hide chrome when transitioning from browse mode
+    if (m_stack->currentWidget() != m_imageView) {
+        m_folderDockWasVisible = m_folderDock->isVisible();
+        m_previewDockWasVisible = m_previewDock->isVisible();
+        m_folderDock->hide();
+        m_previewDock->hide();
+        m_menuBar->hide();
+    }
+
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
     QString path = m_imageModel->filePath(index);
     m_imageView->setImage(path);
@@ -289,6 +300,11 @@ void MainWindow::leaveSingleImageMode()
         setFullScreenMode(false);
     }
     m_stack->setCurrentWidget(m_browserPage);
+    m_menuBar->show();
+    if (m_folderDockWasVisible)
+        m_folderDock->show();
+    if (m_previewDockWasVisible)
+        m_previewDock->show();
     m_listView->setFocus();
 }
 
@@ -302,7 +318,9 @@ void MainWindow::setFullScreenMode(bool fullScreen)
         m_menuBar->hide();
         showFullScreen();
     } else {
-        m_menuBar->show();
+        // Only restore menu bar when returning to browse mode
+        if (m_stack->currentWidget() != m_imageView)
+            m_menuBar->show();
         if (m_wasMaximized)
             showMaximized();
         else
@@ -356,12 +374,18 @@ void MainWindow::loadPreferences()
     QSettings settings("SagoImageBrowser", "SagoImageBrowser");
     m_backgroundColorPreference = settings.value("backgroundColor", "black").toString();
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
+    if (settings.contains("windowGeometry"))
+        restoreGeometry(settings.value("windowGeometry").toByteArray());
+    if (settings.contains("windowState"))
+        restoreState(settings.value("windowState").toByteArray());
 }
 
 void MainWindow::savePreferences()
 {
     QSettings settings("SagoImageBrowser", "SagoImageBrowser");
     settings.setValue("backgroundColor", m_backgroundColorPreference);
+    settings.setValue("windowGeometry", saveGeometry());
+    settings.setValue("windowState", saveState());
 }
 
 void MainWindow::onPreferencesTriggered()
