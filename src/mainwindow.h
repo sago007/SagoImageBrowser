@@ -60,4 +60,7 @@ private:
     QDockWidget *m_previewDock = nullptr;
     bool m_folderDockWasVisible = true;
     bool m_previewDockWasVisible = true;
+    bool m_lockDockingPreference = false;
+
+    void applyDockLocking(bool lock);
 };

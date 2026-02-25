@@ -369,11 +369,26 @@ void MainWindow::closeEvent(QCloseEvent *event)
     QMainWindow::closeEvent(event);
 }
 
+void MainWindow::applyDockLocking(bool lock)
+{
+    const QDockWidget::DockWidgetFeatures movableFeatures =
+        QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable;
+    const QDockWidget::DockWidgetFeatures baseFeatures =
+        QDockWidget::DockWidgetClosable;
+
+    QDockWidget::DockWidgetFeatures features = lock ? baseFeatures
+                                                    : (baseFeatures | movableFeatures);
+    m_folderDock->setFeatures(features);
+    m_previewDock->setFeatures(features);
+}
+
 void MainWindow::loadPreferences()
 {
     QSettings settings("SagoImageBrowser", "SagoImageBrowser");
     m_backgroundColorPreference = settings.value("backgroundColor", "black").toString();
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
+    m_lockDockingPreference = settings.value("lockDocking", false).toBool();
+    applyDockLocking(m_lockDockingPreference);
     if (settings.contains("windowGeometry"))
         restoreGeometry(settings.value("windowGeometry").toByteArray());
     if (settings.contains("windowState"))
@@ -384,6 +399,7 @@ void MainWindow::savePreferences()
 {
     QSettings settings("SagoImageBrowser", "SagoImageBrowser");
     settings.setValue("backgroundColor", m_backgroundColorPreference);
+    settings.setValue("lockDocking", m_lockDockingPreference);
     settings.setValue("windowGeometry", saveGeometry());
     settings.setValue("windowState", saveState());
 }
@@ -392,11 +408,14 @@ void MainWindow::onPreferencesTriggered()
 {
     PreferencesDialog dialog(this);
     dialog.setBackgroundColor(m_backgroundColorPreference);
+    dialog.setLockDocking(m_lockDockingPreference);
 
     if (dialog.exec() == QDialog::Accepted)
     {
         m_backgroundColorPreference = dialog.getBackgroundColor();
         m_imageView->setBackgroundColor(m_backgroundColorPreference);
+        m_lockDockingPreference = dialog.getLockDocking();
+        applyDockLocking(m_lockDockingPreference);
         savePreferences();
     }
 }

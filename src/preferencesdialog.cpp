@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QPushButton>
 #include <QGroupBox>
 
@@ -33,6 +34,12 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     groupLayout->addLayout(bgColorLayout);
     mainLayout->addWidget(imageGroup);
 
+    QGroupBox *layoutGroup = new QGroupBox("Layout", this);
+    QVBoxLayout *layoutGroupLayout = new QVBoxLayout(layoutGroup);
+    m_lockDockingCheck = new QCheckBox("Lock docking (prevent accidental moves)");
+    layoutGroupLayout->addWidget(m_lockDockingCheck);
+    mainLayout->addWidget(layoutGroup);
+
     mainLayout->addStretch();
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -59,4 +66,14 @@ void PreferencesDialog::setBackgroundColor(const QString &color)
     int index = m_backgroundColorCombo->findData(color);
     if (index >= 0)
         m_backgroundColorCombo->setCurrentIndex(index);
+}
+
+bool PreferencesDialog::getLockDocking() const
+{
+    return m_lockDockingCheck->isChecked();
+}
+
+void PreferencesDialog::setLockDocking(bool lock)
+{
+    m_lockDockingCheck->setChecked(lock);
 }
