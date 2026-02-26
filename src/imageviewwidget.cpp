@@ -20,6 +20,9 @@ void ImageViewWidget::setImage(const QString &path)
     QImageReader reader(path);
     reader.setAutoTransform(true);
     reader.setDecideFormatFromContent(true);
+    // Disable the allocation limit so very large images can be viewed.
+    // The default 128 MB limit rejects high-resolution photos.
+    reader.setAllocationLimit(0);
     QImage image = reader.read();
 
     if (!image.isNull()) {

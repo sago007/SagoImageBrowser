@@ -20,6 +20,14 @@ void ThumbnailWorker::run()
     QImageReader reader(m_path);
     reader.setAutoTransform(true);
 
+    // Scale during decoding to avoid hitting the allocation limit
+    // on very large images (Qt 6 defaults to 128 MB).
+    QSize fullSize = reader.size();
+    if (fullSize.isValid()) {
+        QSize target = fullSize.scaled(128, 128, Qt::KeepAspectRatio);
+        reader.setScaledSize(target);
+    }
+
     QImage image = reader.read();
 
     if (*m_cancelFlag)
@@ -28,6 +36,7 @@ void ThumbnailWorker::run()
     if (!image.isNull())
     {
         // Scale to fit within 128x128 keeping aspect ratio
+        // (may already be the right size if setScaledSize succeeded)
         QImage scaled = image.scaled(128, 128,
                                      Qt::KeepAspectRatio,
                                      Qt::SmoothTransformation);

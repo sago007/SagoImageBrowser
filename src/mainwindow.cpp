@@ -258,6 +258,12 @@ void MainWindow::showPreview(const QModelIndex &index)
 
     QImageReader reader(path);
     reader.setAutoTransform(true);
+    // Scale during decoding for the preview to avoid the 128 MB allocation limit
+    QSize fullSize = reader.size();
+    if (fullSize.isValid()) {
+        QSize target = fullSize.scaled(m_previewLabel->size(), Qt::KeepAspectRatio);
+        reader.setScaledSize(target);
+    }
     QImage image = reader.read();
 
     m_previewLabel->setPixmap(
