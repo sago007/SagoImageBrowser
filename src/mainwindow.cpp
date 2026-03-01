@@ -289,6 +289,7 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
 
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
     QString path = m_imageModel->filePath(index);
+    m_imageView->setNeighborPaths(computeNeighborPaths(index));
     m_imageView->setImage(path);
     m_stack->setCurrentWidget(m_imageView);
     m_imageView->setFocus();
@@ -305,6 +306,7 @@ void MainWindow::leaveSingleImageMode()
         m_imageViewWasFullScreen = true;
         setFullScreenMode(false);
     }
+    m_imageView->clearCache();
     m_stack->setCurrentWidget(m_browserPage);
     m_menuBar->show();
     if (m_folderDockWasVisible)
@@ -312,6 +314,34 @@ void MainWindow::leaveSingleImageMode()
     if (m_previewDockWasVisible)
         m_previewDock->show();
     m_listView->setFocus();
+}
+
+QStringList MainWindow::computeNeighborPaths(const QModelIndex &index) const
+{
+    QStringList paths;
+    int row = index.row();
+
+    // Collect up to CacheKeepBehind non-folder images before current
+    int count = 0;
+    for (int i = row - 1; i >= 0 && count < ImageViewWidget::CacheKeepBehind; --i) {
+        QModelIndex idx = m_imageModel->index(i);
+        if (!m_imageModel->isFolder(idx)) {
+            paths.prepend(m_imageModel->filePath(idx));
+            ++count;
+        }
+    }
+
+    // Collect up to CacheReadAhead non-folder images after current
+    count = 0;
+    for (int i = row + 1; i < m_imageModel->rowCount() && count < ImageViewWidget::CacheReadAhead; ++i) {
+        QModelIndex idx = m_imageModel->index(i);
+        if (!m_imageModel->isFolder(idx)) {
+            paths.append(m_imageModel->filePath(idx));
+            ++count;
+        }
+    }
+
+    return paths;
 }
 
 void MainWindow::setFullScreenMode(bool fullScreen)
@@ -459,9 +489,4 @@ void MainWindow::resetLayoutToDefault()
     // Show both docks
     m_folderDock->show();
     m_previewDock->show();
-    
-    // Reset window to normal state
-    /*if (isMaximized() || isFullScreen()) {
-        showNormal();
-    }*/
 }

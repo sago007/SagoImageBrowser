@@ -6,6 +6,35 @@
 #include <QImageReader>
 #include <QPalette>
 #include <algorithm>
+#include <iostream>
+
+// --- ImageLoadWorker ---
+
+ImageLoadWorker::ImageLoadWorker(const QString &path, QObject *parent)
+    : QThread(parent), m_path(path)
+{
+}
+
+void ImageLoadWorker::run()
+{
+    QImageReader reader(m_path);
+    reader.setAutoTransform(true);
+    reader.setDecideFormatFromContent(true);
+    reader.setAllocationLimit(0);
+    QImage image = reader.read();
+
+    QPixmap pixmap;
+    if (!image.isNull()) {
+        if (image.format() != QImage::Format_RGB32
+            && image.format() != QImage::Format_ARGB32
+            && image.format() != QImage::Format_ARGB32_Premultiplied)
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        pixmap = QPixmap::fromImage(image);
+    }
+    emit imageLoaded(m_path, pixmap);
+}
+
+// --- ImageViewWidget ---
 
 ImageViewWidget::ImageViewWidget(QWidget *parent)
     : QWidget(parent)
@@ -15,29 +44,93 @@ ImageViewWidget::ImageViewWidget(QWidget *parent)
     setBackgroundColor("black");
 }
 
-void ImageViewWidget::setImage(const QString &path)
+QPixmap ImageViewWidget::loadImageFromDisk(const QString &path)
 {
     QImageReader reader(path);
     reader.setAutoTransform(true);
     reader.setDecideFormatFromContent(true);
-    // Disable the allocation limit so very large images can be viewed.
-    // The default 128 MB limit rejects high-resolution photos.
     reader.setAllocationLimit(0);
     QImage image = reader.read();
 
     if (!image.isNull()) {
-        // Ensure the image is in a high-quality format
-        if (image.format() != QImage::Format_RGB32 && image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_ARGB32_Premultiplied)
+        if (image.format() != QImage::Format_RGB32
+            && image.format() != QImage::Format_ARGB32
+            && image.format() != QImage::Format_ARGB32_Premultiplied)
             image = image.convertToFormat(QImage::Format_ARGB32);
-        m_pixmap = QPixmap::fromImage(image);
+        return QPixmap::fromImage(image);
     }
-    else
-        m_pixmap = QPixmap();
+    return QPixmap();
+}
+
+void ImageViewWidget::setImage(const QString &path)
+{
+    m_currentPath = path;
+
+    // Check cache first
+    if (m_cache.contains(path)) {
+        m_pixmap = m_cache[path];
+    } else {
+        m_pixmap = loadImageFromDisk(path);
+        m_cache[path] = m_pixmap;
+    }
 
     m_zoomMode = FitToScreen;
     m_zoomFactor = 1.0;
     m_offset = QPoint(0, 0);
     update();
+
+    // Trigger prefetch of neighbors if they have been set
+    if (!m_neighborPaths.isEmpty()) {
+        // Evict entries that are no longer in the neighbor window
+        QSet<QString> keep(m_neighborPaths.begin(), m_neighborPaths.end());
+        keep.insert(m_currentPath);
+        for (auto it = m_cache.begin(); it != m_cache.end(); ) {
+            if (!keep.contains(it.key()))
+                it = m_cache.erase(it);
+            else
+                ++it;
+        }
+
+        // Prefetch neighbors that are not yet cached
+        for (const QString &neighbor : m_neighborPaths) {
+            prefetchImage(neighbor);
+        }
+    }
+}
+
+void ImageViewWidget::prefetchImage(const QString &path)
+{
+    if (m_cache.contains(path) || m_pendingLoads.contains(path))
+        return;
+
+    m_pendingLoads.insert(path);
+    auto *worker = new ImageLoadWorker(path, this);
+    connect(worker, &ImageLoadWorker::imageLoaded, this, &ImageViewWidget::onImageLoaded);
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    worker->start();
+}
+
+void ImageViewWidget::onImageLoaded(const QString &path, const QPixmap &pixmap)
+{
+    m_pendingLoads.remove(path);
+
+    // Only cache if path is still relevant (current or a neighbor)
+    QSet<QString> keep(m_neighborPaths.begin(), m_neighborPaths.end());
+    keep.insert(m_currentPath);
+    if (keep.contains(path)) {
+        m_cache[path] = pixmap;
+    }
+}
+
+void ImageViewWidget::setNeighborPaths(const QStringList &paths)
+{
+    m_neighborPaths = paths;
+}
+
+void ImageViewWidget::clearCache()
+{
+    m_cache.clear();
+    m_neighborPaths.clear();
 }
 
 void ImageViewWidget::setBackgroundColor(const QString &color)

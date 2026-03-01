@@ -36,6 +36,7 @@ private:
     void showPreview(const QModelIndex &index);
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
+    QStringList computeNeighborPaths(const QModelIndex &index) const;
 
     void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
