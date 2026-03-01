@@ -416,6 +416,11 @@ void MainWindow::onPreferencesTriggered()
     dialog.setBackgroundColor(m_backgroundColorPreference);
     dialog.setLockDocking(m_lockDockingPreference);
 
+    bool shouldResetLayout = false;
+    connect(&dialog, &PreferencesDialog::resetLayoutRequested, this, [&shouldResetLayout]() {
+        shouldResetLayout = true;
+    });
+
     if (dialog.exec() == QDialog::Accepted)
     {
         m_backgroundColorPreference = dialog.getBackgroundColor();
@@ -424,4 +429,39 @@ void MainWindow::onPreferencesTriggered()
         applyDockLocking(m_lockDockingPreference);
         savePreferences();
     }
+    
+    // Apply layout reset immediately after dialog closes if requested
+    if (shouldResetLayout) {
+        resetLayoutToDefault();
+    }
+}
+
+void MainWindow::resetLayoutToDefault()
+{
+    QSettings settings("SagoImageBrowser", "SagoImageBrowser");
+    settings.remove("windowGeometry");
+    settings.remove("windowState");
+    
+    // Hide and detach docks completely
+    m_folderDock->hide();
+    m_previewDock->hide();
+    
+    m_folderDock->setFloating(false);
+    m_previewDock->setFloating(false);
+    
+    removeDockWidget(m_folderDock);
+    removeDockWidget(m_previewDock);
+    
+    // Re-add in default positions
+    addDockWidget(Qt::LeftDockWidgetArea, m_folderDock);
+    addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
+    
+    // Show both docks
+    m_folderDock->show();
+    m_previewDock->show();
+    
+    // Reset window to normal state
+    /*if (isMaximized() || isFullScreen()) {
+        showNormal();
+    }*/
 }

@@ -18,6 +18,9 @@ public:
     bool getLockDocking() const;
     void setLockDocking(bool lock);
 
+signals:
+    void resetLayoutRequested();
+
 private:
     QComboBox *m_backgroundColorCombo;
     QCheckBox *m_lockDockingCheck;

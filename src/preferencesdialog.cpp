@@ -7,6 +7,7 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QGroupBox>
+#include <QMessageBox>
 
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
@@ -38,6 +39,15 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     QVBoxLayout *layoutGroupLayout = new QVBoxLayout(layoutGroup);
     m_lockDockingCheck = new QCheckBox("Lock docking (prevent accidental moves)");
     layoutGroupLayout->addWidget(m_lockDockingCheck);
+    
+    QPushButton *resetLayoutButton = new QPushButton("Reset Layout to Default");
+    connect(resetLayoutButton, &QPushButton::clicked, this, [this]() {
+        QMessageBox::information(this, "Layout Reset", "The window layout will be reset to default.");
+        emit resetLayoutRequested();
+        accept(); // Close the dialog
+    });
+    layoutGroupLayout->addWidget(resetLayoutButton);
+    
     mainLayout->addWidget(layoutGroup);
 
     mainLayout->addStretch();

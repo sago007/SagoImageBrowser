@@ -28,6 +28,7 @@ private:
     void loadPreferences();
     void savePreferences();
     void onPreferencesTriggered();
+    void resetLayoutToDefault();
     void navigateToFolder(const QString &path);
     void selectPreviousFolderIfExists();
     void setFullScreenMode(bool fullScreen);
