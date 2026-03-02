@@ -7,7 +7,6 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QGroupBox>
-#include <QMessageBox>
 
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
@@ -40,13 +39,8 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     m_lockDockingCheck = new QCheckBox("Lock docking (prevent accidental moves)");
     layoutGroupLayout->addWidget(m_lockDockingCheck);
     
-    QPushButton *resetLayoutButton = new QPushButton("Reset Layout to Default");
-    connect(resetLayoutButton, &QPushButton::clicked, this, [this]() {
-        QMessageBox::information(this, "Layout Reset", "The window layout will be reset to default.");
-        emit resetLayoutRequested();
-        accept(); // Close the dialog
-    });
-    layoutGroupLayout->addWidget(resetLayoutButton);
+    m_resetLayoutCheck = new QCheckBox("Reset layout to default when closing the menu");
+    layoutGroupLayout->addWidget(m_resetLayoutCheck);
     
     mainLayout->addWidget(layoutGroup);
 
@@ -62,7 +56,11 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
 
     mainLayout->addLayout(buttonLayout);
 
-    connect(okButton, &QPushButton::clicked, this, &QDialog::accept);
+    connect(okButton, &QPushButton::clicked, this, [this]() {
+        if (m_resetLayoutCheck->isChecked())
+            emit resetLayoutRequested();
+        accept();
+    });
     connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
 }
 
@@ -86,4 +84,14 @@ bool PreferencesDialog::getLockDocking() const
 void PreferencesDialog::setLockDocking(bool lock)
 {
     m_lockDockingCheck->setChecked(lock);
+}
+
+bool PreferencesDialog::getResetLayout() const
+{
+    return m_resetLayoutCheck->isChecked();
+}
+
+void PreferencesDialog::setResetLayout(bool reset)
+{
+    m_resetLayoutCheck->setChecked(reset);
 }
