@@ -9,7 +9,7 @@ class QStackedWidget;
 class QMenuBar;
 class QDockWidget;
 class QFileSystemModel;
-class QComboBox;
+class QListWidget;
 class ImageModel;
 class ImageViewWidget;
 class PreferencesDialog;
@@ -46,7 +46,7 @@ private:
     ImageModel *m_imageModel;
 
     QTreeView *m_treeView;
-    QComboBox *m_rootCombo;
+    QListWidget *m_rootList;
     QListView *m_listView;
     QLabel *m_previewLabel;
 
@@ -58,8 +58,10 @@ private:
     bool m_imageViewWasFullScreen = false;
     QString m_previousFolderPath;
     QMenuBar *m_menuBar = nullptr;
+    QDockWidget *m_rootDock = nullptr;
     QDockWidget *m_folderDock = nullptr;
     QDockWidget *m_previewDock = nullptr;
+    bool m_rootDockWasVisible = true;
     bool m_folderDockWasVisible = true;
     bool m_previewDockWasVisible = true;
     bool m_lockDockingPreference = false;

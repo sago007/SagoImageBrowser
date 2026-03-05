@@ -9,8 +9,7 @@
 #include <QLabel>
 #include <QStackedWidget>
 #include <QDir>
-#include <QComboBox>
-#include <QVBoxLayout>
+#include <QListWidget>
 #include <QStandardPaths>
 #include <QImageReader>
 #include <QHeaderView>
@@ -43,11 +42,18 @@ void MainWindow::setupUi()
     m_dirModel->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot);
     m_dirModel->setRootPath(QDir::homePath());
 
-    // Root chooser combo box
-    m_rootCombo = new QComboBox;
-    m_rootCombo->addItem("Home",     QDir::homePath());
-    m_rootCombo->addItem("Pictures", QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
-    m_rootCombo->addItem("File System", QDir::rootPath());
+    // Root chooser list
+    m_rootList = new QListWidget;
+    m_rootList->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    auto addRootItem = [this](const QString &label, const QString &path) {
+        QListWidgetItem *item = new QListWidgetItem(label, m_rootList);
+        item->setData(Qt::UserRole, path);
+    };
+    addRootItem("Home", QDir::homePath());
+    addRootItem("Pictures", QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
+    addRootItem("File System", QDir::rootPath());
+    m_rootList->setCurrentRow(0);
 
     m_treeView = new QTreeView;
     m_treeView->setModel(m_dirModel);
@@ -56,13 +62,6 @@ void MainWindow::setupUi()
     m_treeView->setColumnHidden(1, true);
     m_treeView->setColumnHidden(2, true);
     m_treeView->setColumnHidden(3, true);
-
-    // Left pane: combo + tree inside a container widget
-    QWidget *leftPane = new QWidget;
-    QVBoxLayout *leftLayout = new QVBoxLayout(leftPane);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
-    leftLayout->addWidget(m_rootCombo);
-    leftLayout->addWidget(m_treeView);
 
     // Thumbnail model (center pane)
     m_imageModel = new ImageModel(this);
@@ -95,10 +94,16 @@ void MainWindow::setupUi()
     setCentralWidget(m_stack);
 
     // Dock widgets — can be dragged, floated and stacked by the user
+    m_rootDock = new QDockWidget(tr("Roots"), this);
+    m_rootDock->setObjectName("RootDock");
+    m_rootDock->setWidget(m_rootList);
+    addDockWidget(Qt::LeftDockWidgetArea, m_rootDock);
+
     m_folderDock = new QDockWidget(tr("Folders"), this);
     m_folderDock->setObjectName("FolderDock");
-    m_folderDock->setWidget(leftPane);
+    m_folderDock->setWidget(m_treeView);
     addDockWidget(Qt::LeftDockWidgetArea, m_folderDock);
+    splitDockWidget(m_rootDock, m_folderDock, Qt::Vertical);
 
     m_previewDock = new QDockWidget(tr("Preview"), this);
     m_previewDock->setObjectName("PreviewDock");
@@ -114,6 +119,7 @@ void MainWindow::setupMenuBar()
         "QMenuBar::item { padding: 2px 6px; }"
     );
     QMenu *viewMenu = m_menuBar->addMenu("&View");
+    viewMenu->addAction(m_rootDock->toggleViewAction());
     viewMenu->addAction(m_folderDock->toggleViewAction());
     viewMenu->addAction(m_previewDock->toggleViewAction());
 
@@ -156,9 +162,12 @@ void MainWindow::selectPreviousFolderIfExists()
 
 void MainWindow::setupConnections()
 {
-    connect(m_rootCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-            [this](int index) {
-                QString rootPath = m_rootCombo->itemData(index).toString();
+    connect(m_rootList, &QListWidget::currentItemChanged, this,
+            [this](QListWidgetItem *current, QListWidgetItem *) {
+                if (current == nullptr)
+                    return;
+
+                QString rootPath = current->data(Qt::UserRole).toString();
                 m_dirModel->setRootPath(rootPath);
                 m_treeView->setRootIndex(m_dirModel->index(rootPath));
             });
@@ -280,8 +289,10 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
 
     // Only save state and hide chrome when transitioning from browse mode
     if (m_stack->currentWidget() != m_imageView) {
+        m_rootDockWasVisible = m_rootDock->isVisible();
         m_folderDockWasVisible = m_folderDock->isVisible();
         m_previewDockWasVisible = m_previewDock->isVisible();
+        m_rootDock->hide();
         m_folderDock->hide();
         m_previewDock->hide();
         m_menuBar->hide();
@@ -309,6 +320,8 @@ void MainWindow::leaveSingleImageMode()
     m_imageView->clearCache();
     m_stack->setCurrentWidget(m_browserPage);
     m_menuBar->show();
+    if (m_rootDockWasVisible)
+        m_rootDock->show();
     if (m_folderDockWasVisible)
         m_folderDock->show();
     if (m_previewDockWasVisible)
@@ -414,6 +427,7 @@ void MainWindow::applyDockLocking(bool lock)
 
     QDockWidget::DockWidgetFeatures features = lock ? baseFeatures
                                                     : (baseFeatures | movableFeatures);
+    m_rootDock->setFeatures(features);
     m_folderDock->setFeatures(features);
     m_previewDock->setFeatures(features);
 }
@@ -473,20 +487,26 @@ void MainWindow::resetLayoutToDefault()
     settings.remove("windowState");
     
     // Hide and detach docks completely
+    m_rootDock->hide();
     m_folderDock->hide();
     m_previewDock->hide();
     
+    m_rootDock->setFloating(false);
     m_folderDock->setFloating(false);
     m_previewDock->setFloating(false);
     
+    removeDockWidget(m_rootDock);
     removeDockWidget(m_folderDock);
     removeDockWidget(m_previewDock);
     
     // Re-add in default positions
+    addDockWidget(Qt::LeftDockWidgetArea, m_rootDock);
     addDockWidget(Qt::LeftDockWidgetArea, m_folderDock);
     addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
+    splitDockWidget(m_rootDock, m_folderDock, Qt::Vertical);
     
-    // Show both docks
+    // Show all docks
+    m_rootDock->show();
     m_folderDock->show();
     m_previewDock->show();
 }
