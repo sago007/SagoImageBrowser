@@ -2,37 +2,92 @@
   <rect width="512" height="512" rx="72" fill="#F4F4F4"/>
 
   <!-- Folder grid -->
-  <g stroke="#111111" stroke-width="12" stroke-linejoin="round">
+  <g stroke="#111111" stroke-width="10" stroke-linejoin="round">
     <!-- Row 1 -->
-    <rect x="36" y="36" width="88" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="156" y="40" width="62" height="62" rx="6" fill="#FFFFFF"/>
-    <rect x="266" y="40" width="62" height="62" rx="6" fill="#FFFFFF"/>
+    <g>
+      <!-- Folder tab - Blue -->
+      <rect x="40" y="30" width="36" height="18" rx="4" fill="#2563EB"/>
+      <!-- Folder body -->
+      <rect x="40" y="48" width="60" height="60" rx="6" fill="#3B82F6"/>
+    </g>
+    <g>
+      <!-- Folder tab - Red -->
+      <rect x="140" y="34" width="36" height="18" rx="4" fill="#DC2626"/>
+      <!-- Folder body -->
+      <rect x="140" y="52" width="60" height="60" rx="6" fill="#EF4444"/>
+    </g>
+    <g>
+      <!-- Folder tab - Yellow -->
+      <rect x="240" y="34" width="36" height="18" rx="4" fill="#D97706"/>
+      <!-- Folder body -->
+      <rect x="240" y="52" width="60" height="60" rx="6" fill="#FBBF24"/>
+    </g>
 
     <!-- Row 2 -->
-    <rect x="40" y="116" width="92" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="156" y="116" width="62" height="62" rx="6" fill="#FFFFFF"/>
-    <rect x="264" y="116" width="74" height="74" rx="6" fill="#FFFFFF"/>
+    <g>
+      <!-- Folder tab - Green -->
+      <rect x="40" y="138" width="36" height="18" rx="4" fill="#059669"/>
+      <!-- Folder body -->
+      <rect x="40" y="156" width="60" height="60" rx="6" fill="#10B981"/>
+    </g>
+    <g>
+      <!-- Folder tab - Purple -->
+      <rect x="140" y="138" width="36" height="18" rx="4" fill="#7C3AED"/>
+      <!-- Folder body -->
+      <rect x="140" y="156" width="60" height="60" rx="6" fill="#A78BFA"/>
+    </g>
+    <g>
+      <!-- Folder tab - Pink -->
+      <rect x="240" y="138" width="36" height="18" rx="4" fill="#DB2777"/>
+      <!-- Folder body -->
+      <rect x="240" y="156" width="60" height="60" rx="6" fill="#EC4899"/>
+    </g>
 
     <!-- Row 3 -->
-    <rect x="42" y="198" width="98" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="154" y="196" width="96" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="272" y="196" width="82" height="58" rx="6" fill="#FFFFFF"/>
+    <g>
+      <!-- Folder tab - Teal -->
+      <rect x="40" y="246" width="36" height="18" rx="4" fill="#0D9488"/>
+      <!-- Folder body -->
+      <rect x="40" y="264" width="60" height="60" rx="6" fill="#14B8A6"/>
+    </g>
+    <g>
+      <!-- Folder tab - Orange -->
+      <rect x="140" y="246" width="36" height="18" rx="4" fill="#EA580C"/>
+      <!-- Folder body -->
+      <rect x="140" y="264" width="60" height="60" rx="6" fill="#FB923C"/>
+    </g>
+    <g>
+      <!-- Folder tab - Cyan -->
+      <rect x="240" y="246" width="36" height="18" rx="4" fill="#0891B2"/>
+      <!-- Folder body -->
+      <rect x="240" y="264" width="60" height="60" rx="6" fill="#06B6D4"/>
+    </g>
 
     <!-- Row 4 -->
-    <rect x="40" y="282" width="104" height="60" rx="6" fill="#FFFFFF"/>
-    <rect x="160" y="280" width="102" height="60" rx="6" fill="#FFFFFF"/>
-    <rect x="274" y="264" width="68" height="112" rx="6" fill="#FFFFFF"/>
-
-    <!-- Row 5 -->
-    <rect x="44" y="392" width="92" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="164" y="388" width="88" height="58" rx="6" fill="#FFFFFF"/>
-    <rect x="276" y="402" width="96" height="54" rx="6" fill="#FFFFFF"/>
+    <g>
+      <!-- Folder tab - Indigo -->
+      <rect x="40" y="354" width="36" height="18" rx="4" fill="#4F46E5"/>
+      <!-- Folder body -->
+      <rect x="40" y="372" width="60" height="60" rx="6" fill="#6366F1"/>
+    </g>
+    <g>
+      <!-- Folder tab - Rose -->
+      <rect x="140" y="354" width="36" height="18" rx="4" fill="#BE185D"/>
+      <!-- Folder body -->
+      <rect x="140" y="372" width="60" height="60" rx="6" fill="#F43F5E"/>
+    </g>
+    <g>
+      <!-- Folder tab - Lime -->
+      <rect x="240" y="354" width="36" height="18" rx="4" fill="#84CC16"/>
+      <!-- Folder body -->
+      <rect x="240" y="372" width="60" height="60" rx="6" fill="#BFEF45"/>
+    </g>
   </g>
 
   <!-- Up arrow in top-left folder -->
   <g stroke="#111111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M80 78V48"/>
-    <path d="M64 62L80 46L96 62"/>
+    <path d="M70 90V60"/>
+    <path d="M56 76L70 60L84 76"/>
   </g>
 
   <!-- Large eye overlapping folders -->
@@ -46,14 +101,34 @@
       stroke-linejoin="round"
     />
 
-    <!-- Iris -->
+    <!-- Iris - Vibrant Gradient Blue -->
     <circle
       cx="118"
       cy="128"
       r="54"
-      fill="#D9D9D9"
+      fill="#06B6D4"
       stroke="#111111"
       stroke-width="12"
+    />
+
+    <!-- Iris pattern rings -->
+    <circle
+      cx="118"
+      cy="128"
+      r="42"
+      fill="none"
+      stroke="#0891B2"
+      stroke-width="6"
+      opacity="0.6"
+    />
+    <circle
+      cx="118"
+      cy="128"
+      r="28"
+      fill="none"
+      stroke="#06B6D4"
+      stroke-width="4"
+      opacity="0.5"
     />
 
     <!-- Pupil -->
@@ -64,12 +139,19 @@
       fill="#111111"
     />
 
-    <!-- Highlight -->
+    <!-- Highlight - bright glow -->
     <circle
       cx="100"
       cy="110"
       r="8"
       fill="#FFFFFF"
+    />
+    <circle
+      cx="100"
+      cy="110"
+      r="5"
+      fill="#E0F2FE"
+      opacity="0.7"
     />
   </g>
 </svg>
