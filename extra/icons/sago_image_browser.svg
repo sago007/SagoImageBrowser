@@ -1,0 +1,76 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="72" fill="#F4F4F4"/>
+
+  <!-- Folder grid -->
+  <g stroke="#111111" stroke-width="12" stroke-linejoin="round">
+    <!-- Row 1 -->
+    <rect x="36" y="36" width="88" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="156" y="40" width="62" height="62" rx="6" fill="#FFFFFF"/>
+    <rect x="266" y="40" width="62" height="62" rx="6" fill="#FFFFFF"/>
+
+    <!-- Row 2 -->
+    <rect x="40" y="116" width="92" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="156" y="116" width="62" height="62" rx="6" fill="#FFFFFF"/>
+    <rect x="264" y="116" width="74" height="74" rx="6" fill="#FFFFFF"/>
+
+    <!-- Row 3 -->
+    <rect x="42" y="198" width="98" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="154" y="196" width="96" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="272" y="196" width="82" height="58" rx="6" fill="#FFFFFF"/>
+
+    <!-- Row 4 -->
+    <rect x="40" y="282" width="104" height="60" rx="6" fill="#FFFFFF"/>
+    <rect x="160" y="280" width="102" height="60" rx="6" fill="#FFFFFF"/>
+    <rect x="274" y="264" width="68" height="112" rx="6" fill="#FFFFFF"/>
+
+    <!-- Row 5 -->
+    <rect x="44" y="392" width="92" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="164" y="388" width="88" height="58" rx="6" fill="#FFFFFF"/>
+    <rect x="276" y="402" width="96" height="54" rx="6" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Up arrow in top-left folder -->
+  <g stroke="#111111" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 78V48"/>
+    <path d="M64 62L80 46L96 62"/>
+  </g>
+
+  <!-- Large eye overlapping folders -->
+  <g transform="translate(240 110)">
+    <!-- Eye shape -->
+    <path
+      d="M110 40C175 40 232 76 270 128C232 180 175 216 110 216C58 216 8 188 -34 128C8 68 58 40 110 40Z"
+      fill="#FFFFFF"
+      stroke="#111111"
+      stroke-width="14"
+      stroke-linejoin="round"
+    />
+
+    <!-- Iris -->
+    <circle
+      cx="118"
+      cy="128"
+      r="54"
+      fill="#D9D9D9"
+      stroke="#111111"
+      stroke-width="12"
+    />
+
+    <!-- Pupil -->
+    <circle
+      cx="118"
+      cy="128"
+      r="24"
+      fill="#111111"
+    />
+
+    <!-- Highlight -->
+    <circle
+      cx="100"
+      cy="110"
+      r="8"
+      fill="#FFFFFF"
+    />
+  </g>
+</svg>
+
