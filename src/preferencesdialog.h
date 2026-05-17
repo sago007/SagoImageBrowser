@@ -4,6 +4,7 @@
 
 class QComboBox;
 class QCheckBox;
+class QSpinBox;
 
 class PreferencesDialog : public QDialog
 {
@@ -14,6 +15,9 @@ public:
 
     QString getBackgroundColor() const;
     void setBackgroundColor(const QString &color);
+
+    int getCacheSize() const;
+    void setCacheSize(int n);
 
     bool getLockDocking() const;
     void setLockDocking(bool lock);
@@ -26,6 +30,7 @@ signals:
 
 private:
     QComboBox *m_backgroundColorCombo;
+    QSpinBox  *m_cacheSizeSpinBox;
     QCheckBox *m_lockDockingCheck;
     QCheckBox *m_resetLayoutCheck;
 };

@@ -439,6 +439,8 @@ void MainWindow::loadPreferences()
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
     m_lockDockingPreference = settings.value("lockDocking", false).toBool();
     applyDockLocking(m_lockDockingPreference);
+    m_folderCacheSizePreference = settings.value("folderCacheSize", 4).toInt();
+    m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
     if (settings.contains("windowGeometry"))
         restoreGeometry(settings.value("windowGeometry").toByteArray());
     if (settings.contains("windowState"))
@@ -450,6 +452,7 @@ void MainWindow::savePreferences()
     QSettings settings("SagoImageBrowser", "SagoImageBrowser");
     settings.setValue("backgroundColor", m_backgroundColorPreference);
     settings.setValue("lockDocking", m_lockDockingPreference);
+    settings.setValue("folderCacheSize", m_folderCacheSizePreference);
     settings.setValue("windowGeometry", saveGeometry());
     settings.setValue("windowState", saveState());
 }
@@ -459,6 +462,7 @@ void MainWindow::onPreferencesTriggered()
     PreferencesDialog dialog(this);
     dialog.setBackgroundColor(m_backgroundColorPreference);
     dialog.setLockDocking(m_lockDockingPreference);
+    dialog.setCacheSize(m_folderCacheSizePreference);
 
     bool shouldResetLayout = false;
     connect(&dialog, &PreferencesDialog::resetLayoutRequested, this, [&shouldResetLayout]() {
@@ -471,6 +475,8 @@ void MainWindow::onPreferencesTriggered()
         m_imageView->setBackgroundColor(m_backgroundColorPreference);
         m_lockDockingPreference = dialog.getLockDocking();
         applyDockLocking(m_lockDockingPreference);
+        m_folderCacheSizePreference = dialog.getCacheSize();
+        m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
         savePreferences();
     }
     

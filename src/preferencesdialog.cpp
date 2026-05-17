@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QComboBox>
+#include <QSpinBox>
 #include <QCheckBox>
 #include <QPushButton>
 #include <QGroupBox>
@@ -32,6 +33,17 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     bgColorLayout->addStretch();
 
     groupLayout->addLayout(bgColorLayout);
+
+    QHBoxLayout *cacheSizeLayout = new QHBoxLayout;
+    QLabel *cacheSizeLabel = new QLabel("Folder thumbnail cache (folders):");
+    m_cacheSizeSpinBox = new QSpinBox;
+    m_cacheSizeSpinBox->setRange(1, 20);
+    m_cacheSizeSpinBox->setValue(4);
+    cacheSizeLayout->addWidget(cacheSizeLabel);
+    cacheSizeLayout->addWidget(m_cacheSizeSpinBox);
+    cacheSizeLayout->addStretch();
+    groupLayout->addLayout(cacheSizeLayout);
+
     mainLayout->addWidget(imageGroup);
 
     QGroupBox *layoutGroup = new QGroupBox("Layout", this);
@@ -74,6 +86,16 @@ void PreferencesDialog::setBackgroundColor(const QString &color)
     int index = m_backgroundColorCombo->findData(color);
     if (index >= 0)
         m_backgroundColorCombo->setCurrentIndex(index);
+}
+
+int PreferencesDialog::getCacheSize() const
+{
+    return m_cacheSizeSpinBox->value();
+}
+
+void PreferencesDialog::setCacheSize(int n)
+{
+    m_cacheSizeSpinBox->setValue(n);
 }
 
 bool PreferencesDialog::getLockDocking() const

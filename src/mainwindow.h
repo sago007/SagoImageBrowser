@@ -52,6 +52,7 @@ private:
 
     QStackedWidget *m_stack;
     QString m_backgroundColorPreference = "black";
+    int m_folderCacheSizePreference = 4;
     QWidget *m_browserPage;
     ImageViewWidget *m_imageView;
     bool m_wasMaximized = false;

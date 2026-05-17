@@ -9,7 +9,8 @@
 ImageModel::ImageModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    m_threadPool.setMaxThreadCount(QThread::idealThreadCount());
+    // Limit 1 thread for thumbnail loading to avoid excessive disk I/O on harddrives. SSDs are so fast the extra threads don't help much anyway.
+    m_threadPool.setMaxThreadCount(1);  //QThread::idealThreadCount()
 
     m_placeholder = QPixmap(128, 128);
     m_placeholder.fill(Qt::lightGray);
@@ -24,11 +25,34 @@ ImageModel::~ImageModel()
     m_threadPool.waitForDone();
 }
 
+void ImageModel::setCacheMaxSize(int n)
+{
+    m_cacheMaxSize = std::max(0, n);
+    while (m_cacheOrder.size() > m_cacheMaxSize)
+        m_folderThumbnailCache.remove(m_cacheOrder.takeFirst());
+}
+
 void ImageModel::setDirectory(const QString &path)
 {
     m_cancelFlag = true;
     m_threadPool.waitForDone();
     m_cancelFlag = false;
+
+    // Save current folder's thumbnails to cache before discarding them
+    if (!m_currentDir.isEmpty()) {
+        ThumbnailMap map;
+        for (const Item &item : m_items)
+            if (item.loaded && !item.isFolder)
+                map[item.path] = item.thumbnail;
+        if (!map.isEmpty()) {
+            if (!m_cacheOrder.contains(m_currentDir)) {
+                m_cacheOrder.append(m_currentDir);
+                if (m_cacheOrder.size() > m_cacheMaxSize)
+                    m_folderThumbnailCache.remove(m_cacheOrder.takeFirst());
+            }
+            m_folderThumbnailCache[m_currentDir] = std::move(map);
+        }
+    }
 
     beginResetModel();
     m_items.clear();
@@ -61,9 +85,23 @@ void ImageModel::setDirectory(const QString &path)
 
     const auto files = dir.entryInfoList();
 
+    // Restore cached thumbnails for this folder if available
+    const ThumbnailMap *cached = m_folderThumbnailCache.contains(path)
+        ? &m_folderThumbnailCache[path]
+        : nullptr;
+
     for (const QFileInfo &file : files)
     {
-        m_items.append({file.absoluteFilePath(), file.fileName(), m_placeholder, false, false});
+        QPixmap thumb = m_placeholder;
+        bool loaded = false;
+        if (cached) {
+            auto it = cached->find(file.absoluteFilePath());
+            if (it != cached->end()) {
+                thumb = it.value();
+                loaded = true;
+            }
+        }
+        m_items.append({file.absoluteFilePath(), file.fileName(), thumb, loaded, false});
     }
 
     endResetModel();

@@ -5,6 +5,8 @@
 #include <QVector>
 #include <QThreadPool>
 #include <QSet>
+#include <QHash>
+#include <QList>
 #include <atomic>
 #include <QIcon>
 
@@ -24,6 +26,7 @@ public:
     QString currentDirectory() const;
 
     void requestThumbnails(int firstRow, int lastRow);
+    void setCacheMaxSize(int n);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -42,6 +45,8 @@ private:
 
     void queueRow(int row);
 
+    using ThumbnailMap = QHash<QString, QPixmap>;
+
     QVector<Item> m_items;
     QThreadPool m_threadPool;
     QPixmap m_placeholder;
@@ -50,4 +55,9 @@ private:
     std::atomic_bool m_cancelFlag{false};
     QIcon m_folderIcon;
     QString m_currentDir;
+
+    // Folder thumbnail cache (last N visited directories)
+    QHash<QString, ThumbnailMap> m_folderThumbnailCache;
+    QList<QString> m_cacheOrder;
+    int m_cacheMaxSize = 4;
 };
