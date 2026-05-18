@@ -7,16 +7,18 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
+    pkg-config \
     qt6-base-dev \
     libqt6core6 \
     libqt6gui6 \
     libqt6widgets6 \
-    && rm -rf /var/lib/apt/lists/* 
+    libexiv2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /staging/sago_image_browser
 
 COPY . /staging/sago_image_browser
 
-RUN cd /staging/sago_image_browser && mkdir -p build && cd build && \
+RUN cd /staging/sago_image_browser && rm -rf build && mkdir build && cd build && \
 cmake .. && \
-make
+make -j$(nproc)
