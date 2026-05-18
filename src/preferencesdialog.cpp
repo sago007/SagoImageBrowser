@@ -44,6 +44,16 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     cacheSizeLayout->addStretch();
     groupLayout->addLayout(cacheSizeLayout);
 
+    QHBoxLayout *thumbSizeLayout = new QHBoxLayout;
+    QLabel *thumbSizeLabel = new QLabel("Thumbnail cache size:");
+    m_thumbnailSizeCombo = new QComboBox;
+    m_thumbnailSizeCombo->addItem("Normal (128 px)", "normal");
+    m_thumbnailSizeCombo->addItem("Large (256 px)", "large");
+    thumbSizeLayout->addWidget(thumbSizeLabel);
+    thumbSizeLayout->addWidget(m_thumbnailSizeCombo);
+    thumbSizeLayout->addStretch();
+    groupLayout->addLayout(thumbSizeLayout);
+
     mainLayout->addWidget(imageGroup);
 
     QGroupBox *layoutGroup = new QGroupBox("Layout", this);
@@ -96,6 +106,18 @@ int PreferencesDialog::getCacheSize() const
 void PreferencesDialog::setCacheSize(int n)
 {
     m_cacheSizeSpinBox->setValue(n);
+}
+
+QString PreferencesDialog::getThumbnailCacheSize() const
+{
+    return m_thumbnailSizeCombo->currentData().toString();
+}
+
+void PreferencesDialog::setThumbnailCacheSize(const QString &size)
+{
+    int index = m_thumbnailSizeCombo->findData(size);
+    if (index >= 0)
+        m_thumbnailSizeCombo->setCurrentIndex(index);
 }
 
 bool PreferencesDialog::getLockDocking() const

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "thumbnailcache.h"
+
 #include <QRunnable>
 #include <QObject>
 #include <QImage>
@@ -12,6 +14,7 @@ class ThumbnailWorker : public QObject, public QRunnable
 public:
     ThumbnailWorker(const QString &path,
                     int row,
+                    ThumbnailCache::Size size,
                     std::atomic_bool *cancelFlag);
 
     void run() override;
@@ -22,5 +25,6 @@ signals:
 private:
     QString m_path;
     int m_row;
+    ThumbnailCache::Size m_size;
     std::atomic_bool *m_cancelFlag;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "thumbnailcache.h"
+
 #include <QAbstractListModel>
 #include <QPixmap>
 #include <QVector>
@@ -27,6 +29,7 @@ public:
 
     void requestThumbnails(int firstRow, int lastRow);
     void setCacheMaxSize(int n);
+    void setThumbnailSize(ThumbnailCache::Size size);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
@@ -60,4 +63,6 @@ private:
     QHash<QString, ThumbnailMap> m_folderThumbnailCache;
     QList<QString> m_cacheOrder;
     int m_cacheMaxSize = 4;
+
+    ThumbnailCache::Size m_thumbnailSize = ThumbnailCache::Size::Normal;
 };

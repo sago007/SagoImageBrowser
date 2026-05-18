@@ -32,6 +32,41 @@ void ImageModel::setCacheMaxSize(int n)
         m_folderThumbnailCache.remove(m_cacheOrder.takeFirst());
 }
 
+void ImageModel::setThumbnailSize(ThumbnailCache::Size size)
+{
+    if (size == m_thumbnailSize)
+        return;
+
+    m_thumbnailSize = size;
+
+    // Cancel any in-flight workers (they were started with the previous size).
+    m_cancelFlag = true;
+    m_threadPool.waitForDone();
+    m_cancelFlag = false;
+
+    m_pendingRows.clear();
+
+    // The folder cache is keyed by directory and size-agnostic; drop it so the
+    // user actually sees the new size.
+    m_folderThumbnailCache.clear();
+    m_cacheOrder.clear();
+
+    // Mark existing image entries unloaded so they get re-fetched at the new size.
+    if (!m_items.isEmpty())
+    {
+        for (int row = 0; row < m_items.size(); ++row)
+        {
+            Item &item = m_items[row];
+            if (item.isFolder)
+                continue;
+            item.thumbnail = m_placeholder;
+            item.loaded = false;
+        }
+        emit dataChanged(index(0), index(m_items.size() - 1),
+                         {Qt::DecorationRole});
+    }
+}
+
 void ImageModel::setDirectory(const QString &path)
 {
     m_cancelFlag = true;
@@ -142,6 +177,7 @@ void ImageModel::queueRow(int row)
     auto *worker = new ThumbnailWorker(
         m_items[row].path,
         row,
+        m_thumbnailSize,
         &m_cancelFlag);
 
     connect(worker, &ThumbnailWorker::finished,

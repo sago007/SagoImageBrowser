@@ -19,6 +19,9 @@ public:
     int getCacheSize() const;
     void setCacheSize(int n);
 
+    QString getThumbnailCacheSize() const;
+    void setThumbnailCacheSize(const QString &size);
+
     bool getLockDocking() const;
     void setLockDocking(bool lock);
 
@@ -31,6 +34,7 @@ signals:
 private:
     QComboBox *m_backgroundColorCombo;
     QSpinBox  *m_cacheSizeSpinBox;
+    QComboBox *m_thumbnailSizeCombo;
     QCheckBox *m_lockDockingCheck;
     QCheckBox *m_resetLayoutCheck;
 };

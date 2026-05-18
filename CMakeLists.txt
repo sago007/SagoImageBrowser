@@ -14,8 +14,11 @@ qt_add_executable(SagoImageBrowser
     src/imagemodel.h
     src/thumbnailworker.cpp
     src/thumbnailworker.h
+    src/thumbnailcache.cpp
+    src/thumbnailcache.h
     src/imageviewwidget.cpp
-    src/imageviewwidget.h    src/preferencesdialog.cpp
+    src/imageviewwidget.h
+    src/preferencesdialog.cpp
     src/preferencesdialog.h)
 
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets)

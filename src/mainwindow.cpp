@@ -2,6 +2,7 @@
 #include "imagemodel.h"
 #include "imageviewwidget.h"
 #include "preferencesdialog.h"
+#include "thumbnailcache.h"
 
 #include <QFileSystemModel>
 #include <QTreeView>
@@ -25,6 +26,15 @@
 #include <QAction>
 #include <QSettings>
 #include <iostream>
+
+namespace
+{
+ThumbnailCache::Size thumbnailSizeFromString(const QString &s)
+{
+    return (s == "large") ? ThumbnailCache::Size::Large
+                          : ThumbnailCache::Size::Normal;
+}
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -441,6 +451,8 @@ void MainWindow::loadPreferences()
     applyDockLocking(m_lockDockingPreference);
     m_folderCacheSizePreference = settings.value("folderCacheSize", 4).toInt();
     m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
+    m_thumbnailCacheSizePreference = settings.value("thumbnailCacheSize", "normal").toString();
+    m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
     if (settings.contains("windowGeometry"))
         restoreGeometry(settings.value("windowGeometry").toByteArray());
     if (settings.contains("windowState"))
@@ -453,6 +465,7 @@ void MainWindow::savePreferences()
     settings.setValue("backgroundColor", m_backgroundColorPreference);
     settings.setValue("lockDocking", m_lockDockingPreference);
     settings.setValue("folderCacheSize", m_folderCacheSizePreference);
+    settings.setValue("thumbnailCacheSize", m_thumbnailCacheSizePreference);
     settings.setValue("windowGeometry", saveGeometry());
     settings.setValue("windowState", saveState());
 }
@@ -463,6 +476,7 @@ void MainWindow::onPreferencesTriggered()
     dialog.setBackgroundColor(m_backgroundColorPreference);
     dialog.setLockDocking(m_lockDockingPreference);
     dialog.setCacheSize(m_folderCacheSizePreference);
+    dialog.setThumbnailCacheSize(m_thumbnailCacheSizePreference);
 
     bool shouldResetLayout = false;
     connect(&dialog, &PreferencesDialog::resetLayoutRequested, this, [&shouldResetLayout]() {
@@ -477,6 +491,13 @@ void MainWindow::onPreferencesTriggered()
         applyDockLocking(m_lockDockingPreference);
         m_folderCacheSizePreference = dialog.getCacheSize();
         m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
+        QString newThumbSize = dialog.getThumbnailCacheSize();
+        if (newThumbSize != m_thumbnailCacheSizePreference)
+        {
+            m_thumbnailCacheSizePreference = newThumbSize;
+            m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
+            loadVisibleThumbnails();
+        }
         savePreferences();
     }
     
