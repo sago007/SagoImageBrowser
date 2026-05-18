@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(EXIV2 REQUIRED exiv2)
 
 qt_add_executable(SagoImageBrowser
     src/main.cpp
@@ -19,6 +21,9 @@ qt_add_executable(SagoImageBrowser
     src/imageviewwidget.cpp
     src/imageviewwidget.h
     src/preferencesdialog.cpp
-    src/preferencesdialog.h)
+    src/preferencesdialog.h
+    src/exifreader.cpp
+    src/exifreader.h)
 
-target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets)
+target_include_directories(SagoImageBrowser PRIVATE ${EXIV2_INCLUDE_DIRS})
+target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})

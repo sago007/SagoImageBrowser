@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QStringList>
 #include <QThread>
+#include "exifreader.h"
 
 class ImageLoadWorker : public QThread
 {
@@ -45,6 +46,9 @@ public:
     void setNeighborPaths(const QStringList &paths);
     void clearCache();
 
+    void setExifData(const ExifData &data);
+    void toggleExifOverlay();
+
 signals:
     void closeRequested();
     void nextRequested();
@@ -79,4 +83,8 @@ private:
     bool   m_dragging = false;
     QPoint m_dragStart;
     QPoint m_offsetAtDragStart;
+
+    // EXIF overlay
+    ExifData m_exifData;
+    bool m_showExifOverlay = false;
 };

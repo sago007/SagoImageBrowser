@@ -10,6 +10,7 @@ class QMenuBar;
 class QDockWidget;
 class QFileSystemModel;
 class QListWidget;
+class QTableWidget;
 class ImageModel;
 class ImageViewWidget;
 class PreferencesDialog;
@@ -34,6 +35,7 @@ private:
     void setFullScreenMode(bool fullScreen);
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
+    void updateExifInfo(const QString &path);
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
     QStringList computeNeighborPaths(const QModelIndex &index) const;
@@ -63,9 +65,12 @@ private:
     QDockWidget *m_rootDock = nullptr;
     QDockWidget *m_folderDock = nullptr;
     QDockWidget *m_previewDock = nullptr;
+    QDockWidget *m_exifDock = nullptr;
+    QTableWidget *m_exifTable = nullptr;
     bool m_rootDockWasVisible = true;
     bool m_folderDockWasVisible = true;
     bool m_previewDockWasVisible = true;
+    bool m_exifDockWasVisible = true;
     bool m_lockDockingPreference = false;
 
     void applyDockLocking(bool lock);

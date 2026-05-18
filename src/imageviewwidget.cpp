@@ -65,6 +65,7 @@ QPixmap ImageViewWidget::loadImageFromDisk(const QString &path)
 void ImageViewWidget::setImage(const QString &path)
 {
     m_currentPath = path;
+    m_exifData = ExifData{}; // clear stale EXIF until new data is set
 
     // Check cache first
     if (m_cache.contains(path)) {
@@ -173,6 +174,43 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
     int x = (width()  - drawn.width())  / 2 + m_offset.x();
     int y = (height() - drawn.height()) / 2 + m_offset.y();
     painter.drawPixmap(x, y, drawn);
+
+    // EXIF overlay — top-right corner, toggled with 'i'
+    if (m_showExifOverlay) {
+        const auto fields = m_exifData.toList();
+        if (!fields.isEmpty()) {
+            const int padding = 10;
+            const int lineH = 18;
+
+            QFont font = painter.font();
+            font.setPointSize(9);
+            painter.setFont(font);
+            QFontMetrics fm(font);
+
+            int maxW = 0;
+            for (const auto &f : fields)
+                maxW = qMax(maxW, fm.horizontalAdvance(f.first + QLatin1String(": ") + f.second));
+
+            const int boxW = maxW + padding * 2;
+            const int boxH = fields.size() * lineH + padding * 2;
+            const int boxX = width() - boxW - padding;
+            const int boxY = padding;
+
+            painter.save();
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor(0, 0, 0, 160));
+            painter.drawRoundedRect(boxX, boxY, boxW, boxH, 8, 8);
+
+            painter.setPen(Qt::white);
+            for (int i = 0; i < fields.size(); ++i) {
+                const QString line = fields[i].first + QLatin1String(": ") + fields[i].second;
+                painter.drawText(boxX + padding,
+                                 boxY + padding + fm.ascent() + i * lineH,
+                                 line);
+            }
+            painter.restore();
+        }
+    }
 }
 
 void ImageViewWidget::keyPressEvent(QKeyEvent *event)
@@ -257,7 +295,27 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
+    if (event->key() == Qt::Key_I)
+    {
+        toggleExifOverlay();
+        event->accept();
+        return;
+    }
+
     QWidget::keyPressEvent(event);
+}
+
+void ImageViewWidget::setExifData(const ExifData &data)
+{
+    m_exifData = data;
+    if (m_showExifOverlay)
+        update();
+}
+
+void ImageViewWidget::toggleExifOverlay()
+{
+    m_showExifOverlay = !m_showExifOverlay;
+    update();
 }
 
 void ImageViewWidget::zoomIn()

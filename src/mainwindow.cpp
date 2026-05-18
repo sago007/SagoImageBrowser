@@ -3,6 +3,7 @@
 #include "imageviewwidget.h"
 #include "preferencesdialog.h"
 #include "thumbnailcache.h"
+#include "exifreader.h"
 
 #include <QFileSystemModel>
 #include <QTreeView>
@@ -25,6 +26,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QSettings>
+#include <QTableWidget>
 #include <iostream>
 
 namespace
@@ -119,6 +121,23 @@ void MainWindow::setupUi()
     m_previewDock->setObjectName("PreviewDock");
     m_previewDock->setWidget(m_previewLabel);
     addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
+
+    // EXIF info dock — placed below the preview dock by default
+    m_exifTable = new QTableWidget(0, 2);
+    m_exifTable->setHorizontalHeaderLabels({tr("Field"), tr("Value")});
+    m_exifTable->horizontalHeader()->setStretchLastSection(true);
+    m_exifTable->verticalHeader()->hide();
+    m_exifTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_exifTable->setSelectionMode(QAbstractItemView::NoSelection);
+    m_exifTable->setShowGrid(false);
+    m_exifTable->setAlternatingRowColors(true);
+    m_exifTable->setMinimumWidth(200);
+
+    m_exifDock = new QDockWidget(tr("EXIF Info"), this);
+    m_exifDock->setObjectName("ExifDock");
+    m_exifDock->setWidget(m_exifTable);
+    addDockWidget(Qt::RightDockWidgetArea, m_exifDock);
+    splitDockWidget(m_previewDock, m_exifDock, Qt::Vertical);
 }
 
 void MainWindow::setupMenuBar()
@@ -132,6 +151,7 @@ void MainWindow::setupMenuBar()
     viewMenu->addAction(m_rootDock->toggleViewAction());
     viewMenu->addAction(m_folderDock->toggleViewAction());
     viewMenu->addAction(m_previewDock->toggleViewAction());
+    viewMenu->addAction(m_exifDock->toggleViewAction());
 
     QMenu *editMenu = m_menuBar->addMenu("&Edit");
     QAction *preferencesAction = editMenu->addAction("&Preferences");
@@ -290,6 +310,25 @@ void MainWindow::showPreview(const QModelIndex &index)
             m_previewLabel->size(),
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation));
+
+    updateExifInfo(path);
+}
+
+void MainWindow::updateExifInfo(const QString &path)
+{
+    QFileInfo fi(path);
+    if (fi.isDir()) {
+        m_exifTable->setRowCount(0);
+        return;
+    }
+    const ExifData data = ExifReader::read(path);
+    const auto fields = data.toList();
+    m_exifTable->setRowCount(fields.size());
+    for (int i = 0; i < fields.size(); ++i) {
+        m_exifTable->setItem(i, 0, new QTableWidgetItem(fields[i].first));
+        m_exifTable->setItem(i, 1, new QTableWidgetItem(fields[i].second));
+    }
+    m_exifTable->resizeColumnToContents(0);
 }
 
 void MainWindow::enterSingleImageMode(const QModelIndex &index)
@@ -302,9 +341,11 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
         m_rootDockWasVisible = m_rootDock->isVisible();
         m_folderDockWasVisible = m_folderDock->isVisible();
         m_previewDockWasVisible = m_previewDock->isVisible();
+        m_exifDockWasVisible = m_exifDock->isVisible();
         m_rootDock->hide();
         m_folderDock->hide();
         m_previewDock->hide();
+        m_exifDock->hide();
         m_menuBar->hide();
     }
 
@@ -312,6 +353,8 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     QString path = m_imageModel->filePath(index);
     m_imageView->setNeighborPaths(computeNeighborPaths(index));
     m_imageView->setImage(path);
+    m_imageView->setExifData(ExifReader::read(path));
+    updateExifInfo(path);
     m_stack->setCurrentWidget(m_imageView);
     m_imageView->setFocus();
 
@@ -336,6 +379,8 @@ void MainWindow::leaveSingleImageMode()
         m_folderDock->show();
     if (m_previewDockWasVisible)
         m_previewDock->show();
+    if (m_exifDockWasVisible)
+        m_exifDock->show();
     m_listView->setFocus();
 }
 
@@ -440,6 +485,7 @@ void MainWindow::applyDockLocking(bool lock)
     m_rootDock->setFeatures(features);
     m_folderDock->setFeatures(features);
     m_previewDock->setFeatures(features);
+    m_exifDock->setFeatures(features);
 }
 
 void MainWindow::loadPreferences()
