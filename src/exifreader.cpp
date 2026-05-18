@@ -5,6 +5,30 @@
 
 #include <exiv2/exiv2.hpp>
 
+// Raw EXIF date format is "YYYY:MM:DD HH:MM:SS"; reformat date separators to dashes
+static QString formatDate(const QString &raw)
+{
+    if (raw.size() >= 10 && raw[4] == u':' && raw[7] == u':')
+        return raw.left(4) + u'-' + raw.mid(5, 2) + u'-' + raw.mid(8, 2) + raw.mid(10);
+    return raw;
+}
+
+static QString findTag(const Exiv2::ExifData &exif, const std::string &key)
+{
+    try {
+        Exiv2::ExifData::const_iterator it = exif.findKey(Exiv2::ExifKey(key));
+        if (it != exif.end())
+            return QString::fromStdString(it->print(&exif)).trimmed();
+    } catch (...) {}
+    return {};
+}
+
+static void addField(QList<QPair<QString, QString>> &result, const char *label, const QString &value)
+{
+    if (!value.isEmpty())
+        result.append({QString::fromLatin1(label), value});
+}
+
 bool ExifData::isEmpty() const
 {
     return dateTime.isEmpty() && make.isEmpty() && model.isEmpty()
@@ -16,20 +40,16 @@ bool ExifData::isEmpty() const
 QList<QPair<QString, QString>> ExifData::toList() const
 {
     QList<QPair<QString, QString>> result;
-    auto add = [&](const char *label, const QString &value) {
-        if (!value.isEmpty())
-            result.append({QString::fromLatin1(label), value});
-    };
-    add("Date/Time",    dateTime);
-    add("Camera Make",  make);
-    add("Camera Model", model);
-    add("Exposure",     exposureTime);
-    add("Aperture",     fNumber);
-    add("ISO",          iso);
-    add("Focal Length", focalLength);
-    add("Flash",        flash);
-    add("Dimensions",   dimensions);
-    add("File Size",    fileSize);
+    addField(result, "Date/Time",    dateTime);
+    addField(result, "Camera Make",  make);
+    addField(result, "Camera Model", model);
+    addField(result, "Exposure",     exposureTime);
+    addField(result, "Aperture",     fNumber);
+    addField(result, "ISO",          iso);
+    addField(result, "Focal Length", focalLength);
+    addField(result, "Flash",        flash);
+    addField(result, "Dimensions",   dimensions);
+    addField(result, "File Size",    fileSize);
     return result;
 }
 
@@ -64,29 +84,20 @@ ExifData ExifReader::read(const QString &path)
 
     // EXIF tags via exiv2
     try {
-        auto image = Exiv2::ImageFactory::open(path.toStdString());
+        std::unique_ptr<Exiv2::Image> image = Exiv2::ImageFactory::open(path.toStdString());
         image->readMetadata();
         const Exiv2::ExifData &exif = image->exifData();
 
-        auto findTag = [&](const std::string &key) -> QString {
-            try {
-                auto it = exif.findKey(Exiv2::ExifKey(key));
-                if (it != exif.end())
-                    return QString::fromStdString(it->print(&exif)).trimmed();
-            } catch (...) {}
-            return {};
-        };
-
-        data.dateTime = findTag("Exif.Photo.DateTimeOriginal");
+        data.dateTime = formatDate(findTag(exif, "Exif.Photo.DateTimeOriginal"));
         if (data.dateTime.isEmpty())
-            data.dateTime = findTag("Exif.Image.DateTime");
-        data.make         = findTag("Exif.Image.Make");
-        data.model        = findTag("Exif.Image.Model");
-        data.exposureTime = findTag("Exif.Photo.ExposureTime");
-        data.fNumber      = findTag("Exif.Photo.FNumber");
-        data.iso          = findTag("Exif.Photo.ISOSpeedRatings");
-        data.focalLength  = findTag("Exif.Photo.FocalLength");
-        data.flash        = findTag("Exif.Photo.Flash");
+            data.dateTime = formatDate(findTag(exif, "Exif.Image.DateTime"));
+        data.make         = findTag(exif, "Exif.Image.Make");
+        data.model        = findTag(exif, "Exif.Image.Model");
+        data.exposureTime = findTag(exif, "Exif.Photo.ExposureTime");
+        data.fNumber      = findTag(exif, "Exif.Photo.FNumber");
+        data.iso          = findTag(exif, "Exif.Photo.ISOSpeedRatings");
+        data.focalLength  = findTag(exif, "Exif.Photo.FocalLength");
+        data.flash        = findTag(exif, "Exif.Photo.Flash");
     } catch (const Exiv2::Error &) {
         // No EXIF or unsupported format — leave tags empty
     }
