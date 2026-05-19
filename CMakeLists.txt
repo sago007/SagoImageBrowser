@@ -14,6 +14,8 @@ qt_add_executable(SagoImageBrowser
     src/mainwindow.h
     src/imagemodel.cpp
     src/imagemodel.h
+    src/fsdirmodel.cpp
+    src/fsdirmodel.h
     src/thumbnailworker.cpp
     src/thumbnailworker.h
     src/thumbnailcache.cpp

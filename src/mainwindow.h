@@ -9,7 +9,7 @@ class QLabel;
 class QStackedWidget;
 class QMenuBar;
 class QDockWidget;
-class QFileSystemModel;
+class FsDirModel;
 class QListWidget;
 class QTableWidget;
 class ImageModel;
@@ -47,7 +47,7 @@ private:
     bool eventFilter(QObject *obj, QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
-    QFileSystemModel *m_dirModel;
+    FsDirModel *m_dirModel;
     ImageModel *m_imageModel;
 
     QTreeView *m_treeView;

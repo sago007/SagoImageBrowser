@@ -4,9 +4,10 @@
 #include "preferencesdialog.h"
 #include "thumbnailcache.h"
 #include "exifreader.h"
+#include "fsdirmodel.h"
 
 #include <QFile>
-#include <QFileSystemModel>
+#include <QTreeView>
 #include <QTreeView>
 #include <QListView>
 #include <QLabel>
@@ -54,9 +55,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::setupUi()
 {
-    // Folder model (left pane)
-    m_dirModel = new QFileSystemModel(this);
-    m_dirModel->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot);
+    // Folder model (left pane) — backed by std::filesystem so directories with
+    // non-UTF-8 filenames are listed correctly.
+    m_dirModel = new FsDirModel(this);
     m_dirModel->setRootPath(QDir::homePath());
 
     // Root chooser list
@@ -74,7 +75,7 @@ void MainWindow::setupUi()
 
     m_treeView = new QTreeView;
     m_treeView->setModel(m_dirModel);
-    m_treeView->setRootIndex(m_dirModel->index(QDir::homePath()));
+    m_treeView->setRootIndex(m_dirModel->rootIndex());
     m_treeView->header()->hide();
     m_treeView->setColumnHidden(1, true);
     m_treeView->setColumnHidden(2, true);
@@ -172,10 +173,7 @@ void MainWindow::navigateToFolder(const QByteArray &path)
 {
     m_previousFolderPath = m_imageModel->currentDirectory();
     m_imageModel->setDirectory(path);
-    // The tree view uses QFileSystemModel which works with QString; convert for it.
-    // If the path contains non-UTF-8 bytes the index lookup may fail — that is
-    // acceptable (the tree view simply won't highlight the node).
-    QModelIndex dirIdx = m_dirModel->index(QFile::decodeName(path));
+    QModelIndex dirIdx = m_dirModel->indexForPath(path);
     if (dirIdx.isValid())
         m_treeView->setCurrentIndex(dirIdx);
     QTimer::singleShot(0, this, [this]() {
@@ -240,13 +238,13 @@ void MainWindow::setupConnections()
 
                 QString rootPath = current->data(Qt::UserRole).toString();
                 m_dirModel->setRootPath(rootPath);
-                m_treeView->setRootIndex(m_dirModel->index(rootPath));
+                m_treeView->setRootIndex(m_dirModel->rootIndex());
             });
 
     connect(m_treeView, &QTreeView::clicked, this,
             [this](const QModelIndex &index)
             {
-                QString path = m_dirModel->filePath(index);
+                QByteArray path = m_dirModel->filePath(index);
                 navigateToFolder(path);
             });
 
