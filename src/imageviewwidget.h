@@ -48,11 +48,13 @@ public:
 
     void setExifData(const ExifData &data);
     void toggleExifOverlay();
+    QByteArray currentPath() const;
 
 signals:
     void closeRequested();
     void nextRequested();
     void previousRequested();
+    void editCaptionRequested();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

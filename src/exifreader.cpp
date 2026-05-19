@@ -35,7 +35,8 @@ static void addField(QList<QPair<QString, QString>> &result, const char *label, 
 
 bool ExifData::isEmpty() const
 {
-    return dateTime.isEmpty() && make.isEmpty() && model.isEmpty()
+    return captionAbstract.isEmpty() && description.isEmpty()
+        && dateTime.isEmpty() && make.isEmpty() && model.isEmpty()
         && exposureTime.isEmpty() && fNumber.isEmpty() && iso.isEmpty()
         && focalLength.isEmpty() && flash.isEmpty()
         && dimensions.isEmpty() && fileSize.isEmpty();
@@ -44,6 +45,8 @@ bool ExifData::isEmpty() const
 QList<QPair<QString, QString>> ExifData::toList() const
 {
     QList<QPair<QString, QString>> result;
+    addField(result, "Caption",      captionAbstract);
+    addField(result, "Description",  description);
     addField(result, "Date/Time",    dateTime);
     addField(result, "Camera Make",  make);
     addField(result, "Camera Model", model);
@@ -111,9 +114,51 @@ ExifData ExifReader::read(const QByteArray &path)
         data.iso          = findTag(exif, "Exif.Photo.ISOSpeedRatings");
         data.focalLength  = findTag(exif, "Exif.Photo.FocalLength");
         data.flash        = findTag(exif, "Exif.Photo.Flash");
+        data.description  = findTag(exif, "Exif.Image.ImageDescription");
+
+        // IPTC Caption-Abstract
+        const Exiv2::IptcData &iptc = image->iptcData();
+        auto iptcIt = iptc.findKey(Exiv2::IptcKey("Iptc.Application2.Caption"));
+        if (iptcIt != iptc.end())
+            data.captionAbstract = QString::fromStdString(iptcIt->toString()).trimmed();
     } catch (const Exiv2::Error &) {
         // No EXIF or unsupported format — leave tags empty
     }
 
     return data;
+}
+
+bool ExifReader::saveCaption(const QByteArray &path,
+                             const QString    &caption,
+                             const ExifData   &oldData)
+{
+    try {
+        std::unique_ptr<Exiv2::Image> image =
+            Exiv2::ImageFactory::open(path.toStdString());
+        image->readMetadata();
+
+        // Erase all existing Caption-Abstract entries then add the new one
+        Exiv2::IptcData &iptc = image->iptcData();
+        {
+            Exiv2::IptcKey key("Iptc.Application2.Caption");
+            auto it = iptc.findKey(key);
+            while (it != iptc.end()) {
+                it = iptc.erase(it);
+                it = iptc.findKey(key);
+            }
+        }
+        Exiv2::Iptcdatum datum(Exiv2::IptcKey("Iptc.Application2.Caption"));
+        datum.setValue(caption.toStdString());
+        iptc.add(datum);
+
+        // If Caption-Abstract and Description were previously in sync, keep them in sync
+        if (oldData.captionAbstract == oldData.description) {
+            image->exifData()["Exif.Image.ImageDescription"] = caption.toStdString();
+        }
+
+        image->writeMetadata();
+        return true;
+    } catch (const Exiv2::Error &) {
+        return false;
+    }
 }

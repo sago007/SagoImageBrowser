@@ -6,6 +6,8 @@
 #include <QPair>
 
 struct ExifData {
+    QString captionAbstract;  // IPTC Caption-Abstract (Iptc.Application2.Caption)
+    QString description;      // Exif.Image.ImageDescription
     QString dateTime;
     QString make;
     QString model;
@@ -23,4 +25,12 @@ struct ExifData {
 
 namespace ExifReader {
 ExifData read(const QByteArray &path);
+
+// Write caption to IPTC Caption-Abstract.
+// If oldData.captionAbstract == oldData.description they were in sync;
+// in that case also update Exif.Image.ImageDescription to match.
+// Returns true on success.
+bool saveCaption(const QByteArray &path,
+                 const QString    &caption,
+                 const ExifData   &oldData);
 } // namespace ExifReader

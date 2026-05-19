@@ -29,6 +29,10 @@
 #include <QAction>
 #include <QSettings>
 #include <QTableWidget>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QDialogButtonBox>
+#include <QPlainTextEdit>
 #include <iostream>
 
 #include <fcntl.h>
@@ -266,7 +270,8 @@ void MainWindow::setupConnections()
 
     connect(m_imageView, &ImageViewWidget::closeRequested,
             this, &MainWindow::leaveSingleImageMode);
-
+    connect(m_imageView, &ImageViewWidget::editCaptionRequested,
+        this, &MainWindow::onEditCaption);
     connect(m_imageView, &ImageViewWidget::nextRequested, this, [this]() {
         QModelIndex cur = m_listView->currentIndex();
         int next = cur.isValid() ? cur.row() + 1 : 0;
@@ -405,6 +410,39 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     if (m_imageViewWasFullScreen) {
         setFullScreenMode(true);
         m_imageViewWasFullScreen = false;
+    }
+}
+
+void MainWindow::onEditCaption()
+{
+    const QByteArray path = m_imageView->currentPath();
+    if (path.isEmpty())
+        return;
+
+    ExifData data = ExifReader::read(path);
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Edit Caption"));
+    auto *layout = new QVBoxLayout(&dlg);
+    layout->addWidget(new QLabel(tr("Caption-Abstract:"), &dlg));
+    auto *edit = new QPlainTextEdit(&dlg);
+    edit->setPlainText(data.captionAbstract);
+    edit->setMinimumWidth(400);
+    layout->addWidget(edit);
+    auto *buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+
+    const QString newCaption = edit->toPlainText();
+    if (ExifReader::saveCaption(path, newCaption, data)) {
+        ExifData updated = ExifReader::read(path);
+        m_imageView->setExifData(updated);
+        updateExifInfo(path);
     }
 }
 

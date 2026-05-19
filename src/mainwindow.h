@@ -41,6 +41,7 @@ private:
     void updateExifInfo(const QByteArray &path);
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
+    void onEditCaption();
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;
 
     void keyPressEvent(QKeyEvent *event) override;

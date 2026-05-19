@@ -238,6 +238,39 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
             painter.restore();
         }
     }
+
+    // Caption-Abstract overlay — bottom-centre, always shown when non-empty
+    if (!m_exifData.captionAbstract.isEmpty()) {
+        const int padding  = 10;
+        const int margin   = 20;  // distance from bottom edge
+        const int maxWidth = width() * 3 / 4;
+
+        QFont captionFont = painter.font();
+        captionFont.setPointSize(11);
+        painter.setFont(captionFont);
+        QFontMetrics cfm(captionFont);
+
+        QRect textBounds = cfm.boundingRect(
+            QRect(0, 0, maxWidth, 0),
+            Qt::AlignHCenter | Qt::TextWordWrap,
+            m_exifData.captionAbstract);
+
+        const int boxW = textBounds.width()  + padding * 2;
+        const int boxH = textBounds.height() + padding * 2;
+        const int boxX = (width() - boxW) / 2;
+        const int boxY = height() - boxH - margin;
+
+        painter.save();
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 180));
+        painter.drawRoundedRect(boxX, boxY, boxW, boxH, 8, 8);
+
+        painter.setPen(Qt::white);
+        painter.drawText(QRect(boxX + padding, boxY + padding, textBounds.width(), textBounds.height()),
+                         Qt::AlignHCenter | Qt::TextWordWrap,
+                         m_exifData.captionAbstract);
+        painter.restore();
+    }
 }
 
 void ImageViewWidget::keyPressEvent(QKeyEvent *event)
@@ -329,6 +362,13 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
+    if (event->key() == Qt::Key_E)
+    {
+        emit editCaptionRequested();
+        event->accept();
+        return;
+    }
+
     QWidget::keyPressEvent(event);
 }
 
@@ -343,6 +383,11 @@ void ImageViewWidget::toggleExifOverlay()
 {
     m_showExifOverlay = !m_showExifOverlay;
     update();
+}
+
+QByteArray ImageViewWidget::currentPath() const
+{
+    return m_currentPath;
 }
 
 void ImageViewWidget::zoomIn()
