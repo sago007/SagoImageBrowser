@@ -5,6 +5,7 @@
 #include "thumbnailcache.h"
 #include "exifreader.h"
 
+#include <QFile>
 #include <QFileSystemModel>
 #include <QTreeView>
 #include <QListView>
@@ -28,6 +29,10 @@
 #include <QSettings>
 #include <QTableWidget>
 #include <iostream>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace
 {
@@ -160,9 +165,17 @@ void MainWindow::setupMenuBar()
 
 void MainWindow::navigateToFolder(const QString &path)
 {
+    navigateToFolder(QFile::encodeName(path));
+}
+
+void MainWindow::navigateToFolder(const QByteArray &path)
+{
     m_previousFolderPath = m_imageModel->currentDirectory();
     m_imageModel->setDirectory(path);
-    QModelIndex dirIdx = m_dirModel->index(path);
+    // The tree view uses QFileSystemModel which works with QString; convert for it.
+    // If the path contains non-UTF-8 bytes the index lookup may fail — that is
+    // acceptable (the tree view simply won't highlight the node).
+    QModelIndex dirIdx = m_dirModel->index(QFile::decodeName(path));
     if (dirIdx.isValid())
         m_treeView->setCurrentIndex(dirIdx);
     QTimer::singleShot(0, this, [this]() {
@@ -178,19 +191,19 @@ void MainWindow::openPath(const QString &path)
         return;
 
     if (info.isDir()) {
-        navigateToFolder(info.absoluteFilePath());
+        navigateToFolder(QFile::encodeName(info.absoluteFilePath()));
     } else if (info.isFile()) {
-        navigateToFolder(info.absolutePath());
+        navigateToFolder(QFile::encodeName(info.absolutePath()));
 
         // ImageModel::setDirectory is synchronous, so items are ready now.
         // Find the file in the model and open it.
+        QByteArray target = QFile::encodeName(info.absoluteFilePath());
         for (int i = 0; i < m_imageModel->rowCount(); ++i) {
             QModelIndex idx = m_imageModel->index(i);
-            if (m_imageModel->filePath(idx) == info.absoluteFilePath()) {
+            if (m_imageModel->filePath(idx) == target) {
                 m_listView->setCurrentIndex(idx);
                 m_listView->scrollTo(idx);
                 showPreview(idx);
-                // ImageModel only lists image files and folders; non-folder = image.
                 if (!m_imageModel->isFolder(idx))
                     enterSingleImageMode(idx);
                 break;
@@ -208,7 +221,7 @@ void MainWindow::selectPreviousFolderIfExists()
     for (int i = 0; i < m_imageModel->rowCount(); ++i) {
         QModelIndex idx = m_imageModel->index(i);
         if (m_imageModel->isFolder(idx)) {
-            QString folderPath = m_imageModel->filePath(idx);
+            QByteArray folderPath = m_imageModel->filePath(idx);
             if (folderPath == m_previousFolderPath) {
                 m_listView->setCurrentIndex(idx);
                 m_listView->scrollTo(idx);
@@ -246,7 +259,7 @@ void MainWindow::setupConnections()
     connect(m_listView, &QListView::doubleClicked, this,
             [this](const QModelIndex &index) {
                 if (m_imageModel->isFolder(index)) {
-                    QString path = m_imageModel->filePath(index);
+                    QByteArray path = m_imageModel->filePath(index);
                     navigateToFolder(path);
                 } else {
                     enterSingleImageMode(index);
@@ -321,31 +334,36 @@ void MainWindow::showPreview(const QModelIndex &index)
     if (!index.isValid())
         return;
 
-    QString path = m_imageModel->filePath(index);
+    QByteArray path = m_imageModel->filePath(index);
 
-    QImageReader reader(path);
-    reader.setAutoTransform(true);
-    // Scale during decoding for the preview to avoid the 128 MB allocation limit
-    QSize fullSize = reader.size();
-    if (fullSize.isValid()) {
-        QSize target = fullSize.scaled(m_previewLabel->size(), Qt::KeepAspectRatio);
-        reader.setScaledSize(target);
+    int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
+    if (fd >= 0) {
+        QFile file;
+        if (file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
+            QImageReader reader(&file);
+            reader.setAutoTransform(true);
+            QSize fullSize = reader.size();
+            if (fullSize.isValid()) {
+                QSize target = fullSize.scaled(m_previewLabel->size(), Qt::KeepAspectRatio);
+                reader.setScaledSize(target);
+            }
+            QImage image = reader.read();
+            m_previewLabel->setPixmap(
+                QPixmap::fromImage(image).scaled(
+                    m_previewLabel->size(),
+                    Qt::KeepAspectRatio,
+                    Qt::SmoothTransformation));
+        }
     }
-    QImage image = reader.read();
-
-    m_previewLabel->setPixmap(
-        QPixmap::fromImage(image).scaled(
-            m_previewLabel->size(),
-            Qt::KeepAspectRatio,
-            Qt::SmoothTransformation));
 
     updateExifInfo(path);
 }
 
-void MainWindow::updateExifInfo(const QString &path)
+void MainWindow::updateExifInfo(const QByteArray &path)
 {
-    QFileInfo fi(path);
-    if (fi.isDir()) {
+    // Check if this is a folder by attempting stat
+    struct ::stat st{};
+    if (::stat(path.constData(), &st) != 0 || S_ISDIR(st.st_mode)) {
         m_exifTable->setRowCount(0);
         return;
     }
@@ -378,7 +396,7 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
     }
 
     m_imageView->setBackgroundColor(m_backgroundColorPreference);
-    QString path = m_imageModel->filePath(index);
+    QByteArray path = m_imageModel->filePath(index);
     m_imageView->setNeighborPaths(computeNeighborPaths(index));
     m_imageView->setImage(path);
     m_imageView->setExifData(ExifReader::read(path));
@@ -412,9 +430,9 @@ void MainWindow::leaveSingleImageMode()
     m_listView->setFocus();
 }
 
-QStringList MainWindow::computeNeighborPaths(const QModelIndex &index) const
+QList<QByteArray> MainWindow::computeNeighborPaths(const QModelIndex &index) const
 {
-    QStringList paths;
+    QList<QByteArray> paths;
     int row = index.row();
 
     // Collect up to CacheKeepBehind non-folder images before current
@@ -475,7 +493,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         if (current.isValid())
         {
             if (m_imageModel->isFolder(current)) {
-                QString path = m_imageModel->filePath(current);
+                QByteArray path = m_imageModel->filePath(current);
                 navigateToFolder(path);
             } else {
                 enterSingleImageMode(current);

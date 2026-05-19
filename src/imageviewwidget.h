@@ -3,10 +3,10 @@
 #include <QWidget>
 #include <QImage>
 #include <QPixmap>
-#include <QString>
-#include <QPoint>
+#include <QByteArray>
+#include <QList>
 #include <QMap>
-#include <QStringList>
+#include <QSet>
 #include <QThread>
 #include "exifreader.h"
 
@@ -14,12 +14,12 @@ class ImageLoadWorker : public QThread
 {
     Q_OBJECT
 public:
-    explicit ImageLoadWorker(const QString &path, QObject *parent = nullptr);
+    explicit ImageLoadWorker(const QByteArray &path, QObject *parent = nullptr);
     void run() override;
 signals:
-    void imageLoaded(const QString &path, const QPixmap &pixmap);
+    void imageLoaded(const QByteArray &path, const QPixmap &pixmap);
 private:
-    QString m_path;
+    QByteArray m_path;
 };
 
 class ImageViewWidget : public QWidget
@@ -35,15 +35,15 @@ public:
 
     explicit ImageViewWidget(QWidget *parent = nullptr);
 
-    void setImage(const QString &path);
+    void setImage(const QByteArray &path);
     void setBackgroundColor(const QString &color);
     void zoomIn();
     void zoomOut();
     void zoomOriginal();
     void zoomFitToScreen();
 
-    void prefetchImage(const QString &path);
-    void setNeighborPaths(const QStringList &paths);
+    void prefetchImage(const QByteArray &path);
+    void setNeighborPaths(const QList<QByteArray> &paths);
     void clearCache();
 
     void setExifData(const ExifData &data);
@@ -64,19 +64,19 @@ protected:
 
 private:
     void clampOffset(int imgW, int imgH);
-    QPixmap loadImageFromDisk(const QString &path);
-    void onImageLoaded(const QString &path, const QPixmap &pixmap);
+    QPixmap loadImageFromDisk(const QByteArray &path);
+    void onImageLoaded(const QByteArray &path, const QPixmap &pixmap);
 
     QPixmap m_pixmap;
     ZoomMode m_zoomMode = FitToScreen;
     double m_zoomFactor = 1.0;
     QString m_backgroundColor = "black";
-    QString m_currentPath;
+    QByteArray m_currentPath;
 
     // Image cache: path -> pixmap
-    QMap<QString, QPixmap> m_cache;
-    QStringList m_neighborPaths;       // ordered list of paths around current image
-    QSet<QString> m_pendingLoads;      // paths currently being loaded in background
+    QMap<QByteArray, QPixmap> m_cache;
+    QList<QByteArray> m_neighborPaths;    // ordered list of paths around current image
+    QSet<QByteArray> m_pendingLoads;      // paths currently being loaded in background
 
     // Panning state
     QPoint m_offset;        // current pan offset (pixels)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QMainWindow>
 
 class QTreeView;
@@ -31,15 +32,16 @@ private:
     void savePreferences();
     void onPreferencesTriggered();
     void resetLayoutToDefault();
-    void navigateToFolder(const QString &path);
+    void navigateToFolder(const QByteArray &path);
+    void navigateToFolder(const QString &path);  // convenience: converts via QFile::encodeName
     void selectPreviousFolderIfExists();
     void setFullScreenMode(bool fullScreen);
     void loadVisibleThumbnails();
     void showPreview(const QModelIndex &index);
-    void updateExifInfo(const QString &path);
+    void updateExifInfo(const QByteArray &path);
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
-    QStringList computeNeighborPaths(const QModelIndex &index) const;
+    QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;
 
     void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -61,7 +63,7 @@ private:
     ImageViewWidget *m_imageView;
     bool m_wasMaximized = false;
     bool m_imageViewWasFullScreen = false;
-    QString m_previousFolderPath;
+    QByteArray m_previousFolderPath;
     QMenuBar *m_menuBar = nullptr;
     QDockWidget *m_rootDock = nullptr;
     QDockWidget *m_folderDock = nullptr;

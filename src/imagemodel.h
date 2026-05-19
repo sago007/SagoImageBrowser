@@ -3,6 +3,7 @@
 #include "thumbnailcache.h"
 
 #include <QAbstractListModel>
+#include <QByteArray>
 #include <QPixmap>
 #include <QVector>
 #include <QThreadPool>
@@ -22,10 +23,12 @@ public:
     explicit ImageModel(QObject *parent = nullptr);
     ~ImageModel();
 
-    void setDirectory(const QString &path);
-    QString filePath(const QModelIndex &index) const;
+    // path is the raw native OS byte string (handles non-UTF-8 filenames)
+    void setDirectory(const QByteArray &path);
+    void setDirectory(const QString &path);   // convenience: converts via QFile::encodeName
+    QByteArray filePath(const QModelIndex &index) const;
     bool isFolder(const QModelIndex &index) const;
-    QString currentDirectory() const;
+    QByteArray currentDirectory() const;
 
     void requestThumbnails(int firstRow, int lastRow);
     void setCacheMaxSize(int n);
@@ -39,7 +42,7 @@ public:
 private:
     struct Item
     {
-        QString path;
+        QByteArray path;      // raw native OS bytes — safe for non-UTF-8 filenames
         QString displayName;
         QPixmap thumbnail;
         bool loaded = false;
@@ -48,7 +51,7 @@ private:
 
     void queueRow(int row);
 
-    using ThumbnailMap = QHash<QString, QPixmap>;
+    using ThumbnailMap = QHash<QByteArray, QPixmap>;
 
     QVector<Item> m_items;
     QThreadPool m_threadPool;
@@ -57,11 +60,11 @@ private:
     QSet<int> m_pendingRows;
     std::atomic_bool m_cancelFlag{false};
     QIcon m_folderIcon;
-    QString m_currentDir;
+    QByteArray m_currentDir;
 
     // Folder thumbnail cache (last N visited directories)
-    QHash<QString, ThumbnailMap> m_folderThumbnailCache;
-    QList<QString> m_cacheOrder;
+    QHash<QByteArray, ThumbnailMap> m_folderThumbnailCache;
+    QList<QByteArray> m_cacheOrder;
     int m_cacheMaxSize = 4;
 
     ThumbnailCache::Size m_thumbnailSize = ThumbnailCache::Size::Normal;

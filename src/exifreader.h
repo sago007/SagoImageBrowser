@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QString>
 #include <QList>
 #include <QPair>
@@ -21,5 +22,5 @@ struct ExifData {
 };
 
 namespace ExifReader {
-ExifData read(const QString &path);
+ExifData read(const QByteArray &path);
 } // namespace ExifReader

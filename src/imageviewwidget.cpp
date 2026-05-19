@@ -3,21 +3,38 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QFile>
 #include <QImageReader>
 #include <QPalette>
 #include <algorithm>
 #include <iostream>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 // --- ImageLoadWorker ---
 
-ImageLoadWorker::ImageLoadWorker(const QString &path, QObject *parent)
+ImageLoadWorker::ImageLoadWorker(const QByteArray &path, QObject *parent)
     : QThread(parent), m_path(path)
 {
 }
 
 void ImageLoadWorker::run()
 {
-    QImageReader reader(m_path);
+    int fd = ::open(m_path.constData(), O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        emit imageLoaded(m_path, QPixmap{});
+        return;
+    }
+
+    QFile file;
+    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
+        ::close(fd);
+        emit imageLoaded(m_path, QPixmap{});
+        return;
+    }
+
+    QImageReader reader(&file);
     reader.setAutoTransform(true);
     reader.setDecideFormatFromContent(true);
     reader.setAllocationLimit(0);
@@ -44,9 +61,19 @@ ImageViewWidget::ImageViewWidget(QWidget *parent)
     setBackgroundColor("black");
 }
 
-QPixmap ImageViewWidget::loadImageFromDisk(const QString &path)
+QPixmap ImageViewWidget::loadImageFromDisk(const QByteArray &path)
 {
-    QImageReader reader(path);
+    int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return {};
+
+    QFile file;
+    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
+        ::close(fd);
+        return {};
+    }
+
+    QImageReader reader(&file);
     reader.setAutoTransform(true);
     reader.setDecideFormatFromContent(true);
     reader.setAllocationLimit(0);
@@ -59,10 +86,10 @@ QPixmap ImageViewWidget::loadImageFromDisk(const QString &path)
             image = image.convertToFormat(QImage::Format_ARGB32);
         return QPixmap::fromImage(image);
     }
-    return QPixmap();
+    return {};
 }
 
-void ImageViewWidget::setImage(const QString &path)
+void ImageViewWidget::setImage(const QByteArray &path)
 {
     m_currentPath = path;
     m_exifData = ExifData{}; // clear stale EXIF until new data is set
@@ -83,7 +110,7 @@ void ImageViewWidget::setImage(const QString &path)
     // Trigger prefetch of neighbors if they have been set
     if (!m_neighborPaths.isEmpty()) {
         // Evict entries that are no longer in the neighbor window
-        QSet<QString> keep(m_neighborPaths.begin(), m_neighborPaths.end());
+        QSet<QByteArray> keep(m_neighborPaths.begin(), m_neighborPaths.end());
         keep.insert(m_currentPath);
         for (auto it = m_cache.begin(); it != m_cache.end(); ) {
             if (!keep.contains(it.key()))
@@ -93,13 +120,13 @@ void ImageViewWidget::setImage(const QString &path)
         }
 
         // Prefetch neighbors that are not yet cached
-        for (const QString &neighbor : m_neighborPaths) {
+        for (const QByteArray &neighbor : m_neighborPaths) {
             prefetchImage(neighbor);
         }
     }
 }
 
-void ImageViewWidget::prefetchImage(const QString &path)
+void ImageViewWidget::prefetchImage(const QByteArray &path)
 {
     if (m_cache.contains(path) || m_pendingLoads.contains(path))
         return;
@@ -111,19 +138,19 @@ void ImageViewWidget::prefetchImage(const QString &path)
     worker->start();
 }
 
-void ImageViewWidget::onImageLoaded(const QString &path, const QPixmap &pixmap)
+void ImageViewWidget::onImageLoaded(const QByteArray &path, const QPixmap &pixmap)
 {
     m_pendingLoads.remove(path);
 
     // Only cache if path is still relevant (current or a neighbor)
-    QSet<QString> keep(m_neighborPaths.begin(), m_neighborPaths.end());
+    QSet<QByteArray> keep(m_neighborPaths.begin(), m_neighborPaths.end());
     keep.insert(m_currentPath);
     if (keep.contains(path)) {
         m_cache[path] = pixmap;
     }
 }
 
-void ImageViewWidget::setNeighborPaths(const QStringList &paths)
+void ImageViewWidget::setNeighborPaths(const QList<QByteArray> &paths)
 {
     m_neighborPaths = paths;
 }

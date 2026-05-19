@@ -3,11 +3,11 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
-#include <QMimeDatabase>
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QUrl>
+
+#include <sys/stat.h>
 
 namespace
 {
@@ -38,43 +38,41 @@ QString ThumbnailCache::subdirFor(Size size)
     return cacheRoot() + "/" + name;
 }
 
-QString ThumbnailCache::canonicalUri(const QString &absPath)
+QByteArray ThumbnailCache::canonicalUri(const QByteArray &absPath)
 {
-    // Per the spec, use the absolute file URI (percent-encoded).
-    return QUrl::fromLocalFile(absPath).toString(QUrl::FullyEncoded);
+    // Build a correct file:// URI by percent-encoding the raw byte path.
+    // Forward slashes are kept unencoded; all other bytes (including non-UTF-8
+    // ones such as Latin-1 \xF8) are percent-encoded.
+    return "file://" + QUrl::toPercentEncoding(absPath, "/");
 }
 
-QString ThumbnailCache::hashedName(const QString &canonicalUri)
+QString ThumbnailCache::hashedName(const QByteArray &canonicalUri)
 {
-    QByteArray hash = QCryptographicHash::hash(canonicalUri.toUtf8(),
-                                               QCryptographicHash::Md5)
-                          .toHex();
+    QByteArray hash =
+        QCryptographicHash::hash(canonicalUri, QCryptographicHash::Md5).toHex();
     return QString::fromLatin1(hash) + ".png";
 }
 
-bool ThumbnailCache::isInsideCache(const QString &absPath)
+bool ThumbnailCache::isInsideCache(const QByteArray &absPath)
 {
-    QString abs = QFileInfo(absPath).absoluteFilePath();
-    QString root = QFileInfo(cacheRoot()).absoluteFilePath();
-    if (root.isEmpty())
-        return false;
-    return abs.startsWith(root + "/") || abs == root;
+    QByteArray root = cacheRoot().toUtf8(); // cache root is always valid UTF-8
+    return absPath.startsWith(root + '/') || absPath == root;
 }
 
-QImage ThumbnailCache::load(const QString &sourcePath, Size size)
+QImage ThumbnailCache::load(const QByteArray &sourcePath, Size size)
 {
-    QFileInfo info(sourcePath);
-    if (!info.exists() || !info.isFile())
+    struct ::stat st{};
+    if (::stat(sourcePath.constData(), &st) != 0 || !S_ISREG(st.st_mode))
         return {};
 
-    const QString uri = canonicalUri(info.absoluteFilePath());
+    const QByteArray uri = canonicalUri(sourcePath);
     const QString cachePath = subdirFor(size) + "/" + hashedName(uri);
 
     QImage img;
     if (!img.load(cachePath, "PNG"))
         return {};
 
-    const qint64 mtime = info.lastModified().toSecsSinceEpoch();
+    const qint64 mtime = static_cast<qint64>(st.st_mtime);
     bool ok = false;
     const qint64 cachedMTime = img.text("Thumb::MTime").toLongLong(&ok);
     if (!ok || cachedMTime != mtime)
@@ -83,16 +81,16 @@ QImage ThumbnailCache::load(const QString &sourcePath, Size size)
     return img;
 }
 
-void ThumbnailCache::save(const QString &sourcePath, Size size, const QImage &thumbImage)
+void ThumbnailCache::save(const QByteArray &sourcePath, Size size, const QImage &thumbImage)
 {
     if (thumbImage.isNull())
         return;
 
-    QFileInfo info(sourcePath);
-    if (!info.exists() || !info.isFile())
+    struct ::stat st{};
+    if (::stat(sourcePath.constData(), &st) != 0 || !S_ISREG(st.st_mode))
         return;
 
-    const QString uri = canonicalUri(info.absoluteFilePath());
+    const QByteArray uri = canonicalUri(sourcePath);
     const QString subdir = subdirFor(size);
     const QString finalPath = subdir + "/" + hashedName(uri);
 
@@ -103,16 +101,10 @@ void ThumbnailCache::save(const QString &sourcePath, Size size, const QImage &th
     QFile::setPermissions(cacheRoot(), dirPerms());
 
     QImage tagged = thumbImage;
-    tagged.setText("Thumb::URI", uri);
+    tagged.setText("Thumb::URI", QString::fromLatin1(uri));
     tagged.setText("Thumb::MTime",
-                   QString::number(info.lastModified().toSecsSinceEpoch()));
-    tagged.setText("Thumb::Size", QString::number(info.size()));
-    QMimeDatabase mimeDb;
-    QString mime = mimeDb.mimeTypeForFile(info).name();
-    if (!mime.isEmpty())
-        tagged.setText("Thumb::Mimetype", mime);
-    tagged.setText("Thumb::Image::Width", QString::number(thumbImage.width()));
-    tagged.setText("Thumb::Image::Height", QString::number(thumbImage.height()));
+                   QString::number(static_cast<qint64>(st.st_mtime)));
+    tagged.setText("Thumb::Size", QString::number(static_cast<qint64>(st.st_size)));
     tagged.setText("Software", QString::fromLatin1(kSoftware));
 
     QTemporaryFile tmp(subdir + "/tmp_XXXXXX.png");

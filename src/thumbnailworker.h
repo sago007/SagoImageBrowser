@@ -2,6 +2,7 @@
 
 #include "thumbnailcache.h"
 
+#include <QByteArray>
 #include <QRunnable>
 #include <QObject>
 #include <QImage>
@@ -12,7 +13,7 @@ class ThumbnailWorker : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    ThumbnailWorker(const QString &path,
+    ThumbnailWorker(const QByteArray &path,
                     int row,
                     ThumbnailCache::Size size,
                     std::atomic_bool *cancelFlag);
@@ -23,7 +24,7 @@ signals:
     void finished(int row, const QImage &image);
 
 private:
-    QString m_path;
+    QByteArray m_path;
     int m_row;
     ThumbnailCache::Size m_size;
     std::atomic_bool *m_cancelFlag;

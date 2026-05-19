@@ -1,9 +1,13 @@
 #include "exifreader.h"
 
-#include <QFileInfo>
+#include <QFile>
 #include <QImageReader>
 
 #include <exiv2/exiv2.hpp>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 // Raw EXIF date format is "YYYY:MM:DD HH:MM:SS"; reformat date separators to dashes
 static QString formatDate(const QString &raw)
@@ -53,17 +57,17 @@ QList<QPair<QString, QString>> ExifData::toList() const
     return result;
 }
 
-ExifData ExifReader::read(const QString &path)
+ExifData ExifReader::read(const QByteArray &path)
 {
     ExifData data;
 
-    QFileInfo fi(path);
-    if (!fi.exists() || fi.isDir())
+    struct ::stat st{};
+    if (::stat(path.constData(), &st) != 0 || !S_ISREG(st.st_mode))
         return data;
 
     // File size
     {
-        qint64 size = fi.size();
+        qint64 size = static_cast<qint64>(st.st_size);
         if (size < 1024)
             data.fileSize = QString::number(size) + QLatin1String(" B");
         else if (size < 1024 * 1024)
@@ -74,17 +78,26 @@ ExifData ExifReader::read(const QString &path)
 
     // Image dimensions via Qt (reads only the header, no full decode needed)
     {
-        QImageReader reader(path);
-        reader.setDecideFormatFromContent(true);
-        QSize sz = reader.size();
-        if (sz.isValid())
-            data.dimensions = QString::fromLatin1("%1 * %2")
-                                  .arg(sz.width()).arg(sz.height());
+        int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
+        if (fd >= 0) {
+            QFile file;
+            if (file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
+                QImageReader reader(&file);
+                reader.setDecideFormatFromContent(true);
+                QSize sz = reader.size();
+                        if (sz.isValid())
+                    data.dimensions = QString::fromLatin1("%1 * %2")
+                                          .arg(sz.width()).arg(sz.height());
+            } else {
+                ::close(fd);
+            }
+        }
     }
 
     // EXIF tags via exiv2
     try {
-        std::unique_ptr<Exiv2::Image> image = Exiv2::ImageFactory::open(path.toStdString());
+        std::unique_ptr<Exiv2::Image> image =
+            Exiv2::ImageFactory::open(path.toStdString());
         image->readMetadata();
         const Exiv2::ExifData &exif = image->exifData();
 

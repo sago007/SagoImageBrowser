@@ -2,7 +2,11 @@
 
 #include "thumbnailcache.h"
 
+#include <QFile>
 #include <QImageReader>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace
 {
@@ -20,7 +24,7 @@ QImage downscaleForDisplay(const QImage &src)
 }
 } // namespace
 
-ThumbnailWorker::ThumbnailWorker(const QString &path,
+ThumbnailWorker::ThumbnailWorker(const QByteArray &path,
                                  int row,
                                  ThumbnailCache::Size size,
                                  std::atomic_bool *cancelFlag)
@@ -53,7 +57,20 @@ void ThumbnailWorker::run()
         return;
     }
 
-    QImageReader reader(m_path);
+    // Open the file via POSIX open() so that paths with non-UTF-8 bytes
+    // (e.g. Latin-1 encoded filenames) are handled correctly.
+    int fd = ::open(m_path.constData(), O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return;
+
+    QFile file;
+    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle))
+    {
+        ::close(fd);
+        return;
+    }
+
+    QImageReader reader(&file);
     reader.setAutoTransform(true);
 
     // Scale during decoding to avoid hitting the allocation limit

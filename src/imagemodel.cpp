@@ -1,10 +1,13 @@
 #include "imagemodel.h"
 #include "thumbnailworker.h"
 
-#include <QDir>
+#include <QFile>
 #include <QImageReader>
-#include <QFileInfo>
 #include <QFileIconProvider>
+
+#include <algorithm>
+#include <filesystem>
+#include <vector>
 
 ImageModel::ImageModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -69,6 +72,11 @@ void ImageModel::setThumbnailSize(ThumbnailCache::Size size)
 
 void ImageModel::setDirectory(const QString &path)
 {
+    setDirectory(QFile::encodeName(path));
+}
+
+void ImageModel::setDirectory(const QByteArray &path)
+{
     m_cancelFlag = true;
     m_threadPool.waitForDone();
     m_cancelFlag = false;
@@ -94,49 +102,101 @@ void ImageModel::setDirectory(const QString &path)
     m_pendingRows.clear();
     m_currentDir = path;
 
-    QDir dir(path);
+    // Build set of supported image extensions (lower-case, without dot)
+    QSet<QByteArray> imageExts;
+    for (const QByteArray &fmt : QImageReader::supportedImageFormats())
+        imageExts.insert(fmt.toLower());
 
-    // Add subdirectories first
-    dir.setFilter(QDir::AllDirs | QDir::NoDot);
-    dir.setSorting(QDir::Name);
-    const auto dirs = dir.entryInfoList();
-    QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
-    for (const QFileInfo &d : dirs)
-    {
-        QString name = d.fileName();  // preserves ".." for the parent entry
-        m_items.append({d.absoluteFilePath(), name, folderPixmap, true, true});
+    // Use std::filesystem::directory_iterator so that directory entries with
+    // non-UTF-8 filenames (e.g. Latin-1 encoded names) are not silently
+    // skipped or mangled as they would be with QDir::entryInfoList().
+    namespace fs = std::filesystem;
+
+    std::vector<std::string> dirs;
+    std::vector<std::string> imageFiles;
+
+    try {
+        fs::path dirPath(path.toStdString());
+
+        // Add ".." parent entry directly with the literal display name ".."
+        // (mirrors QDir::NoDot behaviour)
+        fs::path parentPath = dirPath.parent_path();
+        if (!parentPath.empty() && parentPath != dirPath) {
+            QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
+            m_items.append({QByteArray::fromStdString(parentPath.native()),
+                            QStringLiteral(".."), folderPixmap, true, true});
+        }
+
+        for (const fs::directory_entry &entry :
+             fs::directory_iterator(dirPath,
+                 fs::directory_options::skip_permission_denied))
+        {
+            std::error_code ec;
+            const std::string fname = entry.path().filename().native();
+            if (fname.empty() || fname[0] == '.')
+                continue;   // skip hidden entries
+
+            if (entry.is_directory(ec)) {
+                dirs.push_back(entry.path().native());
+            } else if (entry.is_regular_file(ec)) {
+                // Filter by image extension
+                const std::string &nativeExt = entry.path().extension().native();
+                if (nativeExt.empty())
+                    continue;
+                // extension() includes the dot; strip it and lower-case
+                QByteArray ext = QByteArray(nativeExt.c_str() + 1,
+                                           static_cast<qsizetype>(nativeExt.size()) - 1).toLower();
+                if (imageExts.contains(ext))
+                    imageFiles.push_back(entry.path().native());
+            }
+        }
+    } catch (const fs::filesystem_error &) {
+        // Directory unreadable — show empty listing
     }
 
-    // Then add image files
-    QStringList filters;
+    // Sort subdirectories by filename
+    std::sort(dirs.begin(), dirs.end(),
+              [](const auto &a, const auto &b) {
+                  return fs::path(a).filename() < fs::path(b).filename();
+              });
 
-    const auto formats = QImageReader::supportedImageFormats();
-    for (const QByteArray &fmt : formats)
-        filters << "*." + fmt;
+    std::sort(imageFiles.begin(), imageFiles.end(),
+              [](const auto &a, const auto &b) {
+                  return fs::path(a).filename() < fs::path(b).filename();
+              });
 
-    dir.setNameFilters(filters);
-    dir.setFilter(QDir::Files);
-    dir.setSorting(QDir::Name);
-
-    const auto files = dir.entryInfoList();
+    QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
+    for (const std::string &nativePath : dirs)
+    {
+        QByteArray entryPath = QByteArray::fromStdString(nativePath);
+        std::string fname = fs::path(nativePath).filename().native();
+        QString displayName = QString::fromLocal8Bit(fname.c_str(),
+                                                     static_cast<qsizetype>(fname.size()));
+        m_items.append({entryPath, displayName, folderPixmap, true, true});
+    }
 
     // Restore cached thumbnails for this folder if available
     const ThumbnailMap *cached = m_folderThumbnailCache.contains(path)
         ? &m_folderThumbnailCache[path]
         : nullptr;
 
-    for (const QFileInfo &file : files)
+    for (const std::string &nativePath : imageFiles)
     {
+        QByteArray entryPath = QByteArray::fromStdString(nativePath);
+        std::string fname = fs::path(nativePath).filename().native();
+        QString displayName = QString::fromLocal8Bit(fname.c_str(),
+                                                     static_cast<qsizetype>(fname.size()));
+
         QPixmap thumb = m_placeholder;
         bool loaded = false;
         if (cached) {
-            auto it = cached->find(file.absoluteFilePath());
+            auto it = cached->find(entryPath);
             if (it != cached->end()) {
                 thumb = it.value();
                 loaded = true;
             }
         }
-        m_items.append({file.absoluteFilePath(), file.fileName(), thumb, loaded, false});
+        m_items.append({entryPath, displayName, thumb, loaded, false});
     }
 
     endResetModel();
@@ -187,7 +247,7 @@ void ImageModel::queueRow(int row)
     m_threadPool.start(worker);
 }
 
-QString ImageModel::filePath(const QModelIndex &index) const
+QByteArray ImageModel::filePath(const QModelIndex &index) const
 {
     if (!index.isValid())
         return {};
@@ -202,7 +262,7 @@ bool ImageModel::isFolder(const QModelIndex &index) const
     return m_items[index.row()].isFolder;
 }
 
-QString ImageModel::currentDirectory() const
+QByteArray ImageModel::currentDirectory() const
 {
     return m_currentDir;
 }
