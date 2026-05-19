@@ -171,6 +171,34 @@ void MainWindow::navigateToFolder(const QString &path)
     });
 }
 
+void MainWindow::openPath(const QString &path)
+{
+    QFileInfo info(path);
+    if (!info.exists())
+        return;
+
+    if (info.isDir()) {
+        navigateToFolder(info.absoluteFilePath());
+    } else if (info.isFile()) {
+        navigateToFolder(info.absolutePath());
+
+        // ImageModel::setDirectory is synchronous, so items are ready now.
+        // Find the file in the model and open it.
+        for (int i = 0; i < m_imageModel->rowCount(); ++i) {
+            QModelIndex idx = m_imageModel->index(i);
+            if (m_imageModel->filePath(idx) == info.absoluteFilePath()) {
+                m_listView->setCurrentIndex(idx);
+                m_listView->scrollTo(idx);
+                showPreview(idx);
+                // ImageModel only lists image files and folders; non-folder = image.
+                if (!m_imageModel->isFolder(idx))
+                    enterSingleImageMode(idx);
+                break;
+            }
+        }
+    }
+}
+
 void MainWindow::selectPreviousFolderIfExists()
 {
     if (m_previousFolderPath.isEmpty())
