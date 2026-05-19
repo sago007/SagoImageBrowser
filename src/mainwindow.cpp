@@ -33,6 +33,7 @@
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 #include <QPlainTextEdit>
+#include <QMessageBox>
 #include <iostream>
 
 #include <fcntl.h>
@@ -418,6 +419,13 @@ void MainWindow::onEditCaption()
     const QByteArray path = m_imageView->currentPath();
     if (path.isEmpty())
         return;
+
+    if (::access(path.constData(), W_OK) != 0) {
+        QMessageBox::warning(this, tr("Cannot Edit Caption"),
+            tr("The file is write-protected and cannot be edited.\n\n%1")
+                .arg(QString::fromLocal8Bit(path)));
+        return;
+    }
 
     ExifData data = ExifReader::read(path);
 
