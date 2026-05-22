@@ -12,8 +12,12 @@ class QDockWidget;
 class FsDirModel;
 class QListWidget;
 class QTableWidget;
+class QLineEdit;
+class QPushButton;
+class QCompleter;
 class ImageModel;
 class ImageViewWidget;
+class PathCompleterModel;
 class PreferencesDialog;
 
 class MainWindow : public QMainWindow
@@ -42,6 +46,8 @@ private:
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
     void onEditCaption();
+    void onPathEntered();
+    void updatePathField(const QByteArray &path);
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;
 
     void keyPressEvent(QKeyEvent *event) override;
@@ -55,6 +61,10 @@ private:
     QListWidget *m_rootList;
     QListView *m_listView;
     QLabel *m_previewLabel;
+    QLineEdit *m_pathEdit = nullptr;
+    QPushButton *m_goButton = nullptr;
+    PathCompleterModel *m_pathCompleterModel = nullptr;
+    QCompleter *m_pathCompleter = nullptr;
 
     QStackedWidget *m_stack;
     QString m_backgroundColorPreference = "black";

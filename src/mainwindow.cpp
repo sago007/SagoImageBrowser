@@ -5,6 +5,7 @@
 #include "thumbnailcache.h"
 #include "exifreader.h"
 #include "fsdirmodel.h"
+#include "pathcompletermodel.h"
 
 #include <QFile>
 #include <QTreeView>
@@ -31,9 +32,13 @@
 #include <QTableWidget>
 #include <QDialog>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QDialogButtonBox>
 #include <QPlainTextEdit>
 #include <QMessageBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QCompleter>
 #include <iostream>
 
 #include <fcntl.h>
@@ -108,13 +113,37 @@ void MainWindow::setupUi()
     // Single image view
     m_imageView = new ImageViewWidget;
 
+    // Path bar: editable absolute path with ajax-style folder completion and a Go button
+    m_pathEdit = new QLineEdit;
+    m_goButton = new QPushButton(tr("Go"));
+    m_pathCompleterModel = new PathCompleterModel(this);
+    m_pathCompleter = new QCompleter(m_pathCompleterModel, this);
+    m_pathCompleter->setCaseSensitivity(Qt::CaseSensitive);
+    m_pathCompleter->setCompletionMode(QCompleter::PopupCompletion);
+    m_pathCompleter->setFilterMode(Qt::MatchStartsWith);
+    m_pathEdit->setCompleter(m_pathCompleter);
+
+    auto *pathRow = new QHBoxLayout;
+    pathRow->setContentsMargins(4, 4, 4, 0);
+    pathRow->addWidget(m_pathEdit, 1);
+    pathRow->addWidget(m_goButton);
+
+    auto *browserPage = new QWidget;
+    auto *vbox = new QVBoxLayout(browserPage);
+    vbox->setContentsMargins(0, 0, 0, 0);
+    vbox->setSpacing(0);
+    vbox->addLayout(pathRow);
+    vbox->addWidget(m_listView, 1);
+
     // Stack to switch between browser and single image
     m_stack = new QStackedWidget;
-    m_stack->addWidget(m_listView);
+    m_stack->addWidget(browserPage);
     m_stack->addWidget(m_imageView);
-    m_browserPage = m_listView;
+    m_browserPage = browserPage;
 
     setCentralWidget(m_stack);
+
+    updatePathField(QFile::encodeName(QDir::homePath()));
 
     // Dock widgets — can be dragged, floated and stacked by the user
     m_rootDock = new QDockWidget(tr("Roots"), this);
@@ -181,10 +210,28 @@ void MainWindow::navigateToFolder(const QByteArray &path)
     QModelIndex dirIdx = m_dirModel->indexForPath(path);
     if (dirIdx.isValid())
         m_treeView->setCurrentIndex(dirIdx);
+    updatePathField(path);
     QTimer::singleShot(0, this, [this]() {
         selectPreviousFolderIfExists();
         loadVisibleThumbnails();
     });
+}
+
+void MainWindow::updatePathField(const QByteArray &path)
+{
+    if (!m_pathEdit)
+        return;
+    const QString text = QFile::decodeName(path);
+    if (m_pathEdit->text() != text)
+        m_pathEdit->setText(text);
+}
+
+void MainWindow::onPathEntered()
+{
+    const QString text = m_pathEdit->text().trimmed();
+    if (text.isEmpty())
+        return;
+    openPath(text);
 }
 
 void MainWindow::openPath(const QString &path)
@@ -236,6 +283,13 @@ void MainWindow::selectPreviousFolderIfExists()
 
 void MainWindow::setupConnections()
 {
+    connect(m_pathEdit, &QLineEdit::returnPressed,
+            this, &MainWindow::onPathEntered);
+    connect(m_goButton, &QPushButton::clicked,
+            this, &MainWindow::onPathEntered);
+    connect(m_pathEdit, &QLineEdit::textEdited,
+            m_pathCompleterModel, &PathCompleterModel::setPrefix);
+
     connect(m_rootList, &QListWidget::currentItemChanged, this,
             [this](QListWidgetItem *current, QListWidgetItem *) {
                 if (current == nullptr)
