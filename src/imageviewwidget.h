@@ -89,4 +89,7 @@ private:
     // EXIF overlay
     ExifData m_exifData;
     bool m_showExifOverlay = false;
+
+    // Help overlay
+    bool m_showHelpOverlay = false;
 };

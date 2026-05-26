@@ -271,10 +271,78 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
                          m_exifData.captionAbstract);
         painter.restore();
     }
+
+    // Help overlay — centered, toggled with F1
+    if (m_showHelpOverlay) {
+        static const QPair<QString, QString> shortcuts[] = {
+            {QStringLiteral("F1"),           QStringLiteral("Show/hide keyboard shortcuts")},
+            {QStringLiteral("Esc / Enter"),  QStringLiteral("Close viewer")},
+            {QStringLiteral("PgDn / PgUp"),  QStringLiteral("Next / previous image")},
+            {QStringLiteral("\u2190 \u2192 \u2191 \u2193"),
+                                             QStringLiteral("Pan image")},
+            {QStringLiteral("/"),            QStringLiteral("Zoom to original size")},
+            {QStringLiteral("*"),            QStringLiteral("Zoom to fit screen")},
+            {QStringLiteral("+ / \u2212"),   QStringLiteral("Zoom in / out")},
+            {QStringLiteral("I"),            QStringLiteral("Toggle EXIF info")},
+            {QStringLiteral("E"),            QStringLiteral("Edit caption")},
+            {QStringLiteral("F11"),          QStringLiteral("Toggle fullscreen")},
+        };
+        const int count = static_cast<int>(std::size(shortcuts));
+
+        const int padding = 16;
+        const int lineH   = 22;
+        const int colGap  = 20;
+
+        QFont font = painter.font();
+        font.setPointSize(10);
+        painter.setFont(font);
+        QFontMetrics fm(font);
+
+        int keyColW  = 0;
+        int descColW = 0;
+        for (const auto &s : shortcuts) {
+            keyColW  = qMax(keyColW,  fm.horizontalAdvance(s.first));
+            descColW = qMax(descColW, fm.horizontalAdvance(s.second));
+        }
+
+        const int boxW = padding + keyColW + colGap + descColW + padding;
+        const int boxH = count * lineH + padding * 2;
+        const int boxX = (width()  - boxW) / 2;
+        const int boxY = (height() - boxH) / 2;
+
+        painter.save();
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 200));
+        painter.drawRoundedRect(boxX, boxY, boxW, boxH, 10, 10);
+
+        for (int i = 0; i < count; ++i) {
+            const int textY = boxY + padding + fm.ascent() + i * lineH;
+            // Key column — right-aligned, light lavender
+            painter.setPen(QColor(180, 180, 255));
+            painter.drawText(QRect(boxX + padding, textY - fm.ascent(), keyColW, lineH),
+                             Qt::AlignRight | Qt::AlignVCenter,
+                             shortcuts[i].first);
+            // Description column — left-aligned, white
+            painter.setPen(Qt::white);
+            painter.drawText(QRect(boxX + padding + keyColW + colGap,
+                                   textY - fm.ascent(), descColW, lineH),
+                             Qt::AlignLeft | Qt::AlignVCenter,
+                             shortcuts[i].second);
+        }
+        painter.restore();
+    }
 }
 
 void ImageViewWidget::keyPressEvent(QKeyEvent *event)
 {
+    if (event->key() == Qt::Key_F1)
+    {
+        m_showHelpOverlay = !m_showHelpOverlay;
+        update();
+        event->accept();
+        return;
+    }
+
     if (event->key() == Qt::Key_Escape || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
     {
         emit closeRequested();
