@@ -285,6 +285,9 @@ QVariant ImageModel::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole)
         return item.displayName;
 
+    if (role == Qt::UserRole)
+        return item.isFolder;
+
     return {};
 }
 

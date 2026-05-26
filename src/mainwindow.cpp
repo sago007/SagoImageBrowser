@@ -6,6 +6,7 @@
 #include "exifreader.h"
 #include "fsdirmodel.h"
 #include "pathcompletermodel.h"
+#include "thumbnaildelegate.h"
 
 #include <QFile>
 #include <QTreeView>
@@ -104,6 +105,7 @@ void MainWindow::setupUi()
     m_listView->setSpacing(4);
     m_listView->setWordWrap(true);
     m_listView->setTextElideMode(Qt::ElideRight);
+    m_listView->setItemDelegate(new ThumbnailDelegate(this));
 
     // Preview pane (right)
     m_previewLabel = new QLabel;

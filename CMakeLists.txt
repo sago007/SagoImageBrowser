@@ -27,7 +27,9 @@ qt_add_executable(SagoImageBrowser
     src/exifreader.cpp
     src/exifreader.h
     src/pathcompletermodel.cpp
-    src/pathcompletermodel.h)
+    src/pathcompletermodel.h
+    src/thumbnaildelegate.cpp
+    src/thumbnaildelegate.h)
 
 target_include_directories(SagoImageBrowser PRIVATE ${EXIV2_INCLUDE_DIRS})
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
