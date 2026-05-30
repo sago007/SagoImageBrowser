@@ -49,6 +49,9 @@ private:
     void onPathEntered();
     void updatePathField(const QByteArray &path);
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;
+    QByteArray siblingFolder(int delta) const;
+    void navigateToPrevFolder();
+    void navigateToNextFolder();
 
     void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -63,6 +66,8 @@ private:
     QLabel *m_previewLabel;
     QLineEdit *m_pathEdit = nullptr;
     QPushButton *m_goButton = nullptr;
+    QPushButton *m_prevFolderButton = nullptr;
+    QPushButton *m_nextFolderButton = nullptr;
     PathCompleterModel *m_pathCompleterModel = nullptr;
     QCompleter *m_pathCompleter = nullptr;
 

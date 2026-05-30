@@ -28,6 +28,8 @@ public:
         EditCaption,
         ToggleFullscreen,
         ActivateEntry,
+        PrevFolder,
+        NextFolder,
         ActionCount
     };
 

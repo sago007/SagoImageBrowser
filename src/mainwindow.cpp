@@ -44,6 +44,7 @@
 #include <iostream>
 
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -119,6 +120,8 @@ void MainWindow::setupUi()
     // Path bar: editable absolute path with ajax-style folder completion and a Go button
     m_pathEdit = new QLineEdit;
     m_goButton = new QPushButton(tr("Go"));
+    m_prevFolderButton = new QPushButton(tr("Prev"));
+    m_nextFolderButton = new QPushButton(tr("Next"));
     m_pathCompleterModel = new PathCompleterModel(this);
     m_pathCompleter = new QCompleter(m_pathCompleterModel, this);
     m_pathCompleter->setCaseSensitivity(Qt::CaseSensitive);
@@ -130,6 +133,8 @@ void MainWindow::setupUi()
     pathRow->setContentsMargins(4, 4, 4, 0);
     pathRow->addWidget(m_pathEdit, 1);
     pathRow->addWidget(m_goButton);
+    pathRow->addWidget(m_prevFolderButton);
+    pathRow->addWidget(m_nextFolderButton);
 
     auto *browserPage = new QWidget;
     auto *vbox = new QVBoxLayout(browserPage);
@@ -204,6 +209,58 @@ void MainWindow::setupMenuBar()
 void MainWindow::navigateToFolder(const QString &path)
 {
     navigateToFolder(QFile::encodeName(path));
+}
+
+QByteArray MainWindow::siblingFolder(int delta) const
+{
+    QByteArray currentDir = m_imageModel->currentDirectory();
+    if (currentDir.isEmpty())
+        return {};
+
+    namespace fs = std::filesystem;
+    fs::path current(currentDir.toStdString());
+    fs::path parent = current.parent_path();
+    if (parent.empty() || parent == current)
+        return {};
+
+    QByteArray parentPath = QByteArray::fromStdString(parent.native());
+    QModelIndex parentIdx = m_dirModel->indexForPath(parentPath);
+    if (!parentIdx.isValid())
+        return {};
+
+    int count = m_dirModel->rowCount(parentIdx);
+    int currentRow = -1;
+    for (int i = 0; i < count; ++i) {
+        QModelIndex idx = m_dirModel->index(i, 0, parentIdx);
+        if (m_dirModel->filePath(idx) == currentDir) {
+            currentRow = i;
+            break;
+        }
+    }
+
+    if (currentRow < 0)
+        return {};
+
+    int targetRow = currentRow + delta;
+    if (targetRow < 0 || targetRow >= count)
+        return {};
+
+    QModelIndex targetIdx = m_dirModel->index(targetRow, 0, parentIdx);
+    return m_dirModel->filePath(targetIdx);
+}
+
+void MainWindow::navigateToPrevFolder()
+{
+    QByteArray path = siblingFolder(-1);
+    if (!path.isEmpty())
+        navigateToFolder(path);
+}
+
+void MainWindow::navigateToNextFolder()
+{
+    QByteArray path = siblingFolder(+1);
+    if (!path.isEmpty())
+        navigateToFolder(path);
 }
 
 void MainWindow::navigateToFolder(const QByteArray &path)
@@ -290,6 +347,10 @@ void MainWindow::setupConnections()
             this, &MainWindow::onPathEntered);
     connect(m_goButton, &QPushButton::clicked,
             this, &MainWindow::onPathEntered);
+    connect(m_prevFolderButton, &QPushButton::clicked,
+            this, &MainWindow::navigateToPrevFolder);
+    connect(m_nextFolderButton, &QPushButton::clicked,
+            this, &MainWindow::navigateToNextFolder);
     connect(m_pathEdit, &QLineEdit::textEdited,
             m_pathCompleterModel, &PathCompleterModel::setPrefix);
 
@@ -613,6 +674,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             event->accept();
             return;
         }
+    }
+
+    if (sc.matches(event, ShortcutManager::PrevFolder)
+        && m_stack->currentWidget() == m_browserPage)
+    {
+        navigateToPrevFolder();
+        event->accept();
+        return;
+    }
+
+    if (sc.matches(event, ShortcutManager::NextFolder)
+        && m_stack->currentWidget() == m_browserPage)
+    {
+        navigateToNextFolder();
+        event->accept();
+        return;
     }
 
     QMainWindow::keyPressEvent(event);
