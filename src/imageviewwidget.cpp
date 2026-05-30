@@ -1,4 +1,5 @@
 #include "imageviewwidget.h"
+#include "shortcutmanager.h"
 
 #include <QPainter>
 #include <QKeyEvent>
@@ -284,20 +285,41 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
 
     // Help overlay — centered, toggled with F1
     if (m_showHelpOverlay) {
-        static const QPair<QString, QString> shortcuts[] = {
-            {QStringLiteral("F1"),           QStringLiteral("Show/hide keyboard shortcuts")},
-            {QStringLiteral("Esc / Enter"),  QStringLiteral("Close viewer")},
-            {QStringLiteral("PgDn / PgUp"),  QStringLiteral("Next / previous image")},
-            {QStringLiteral("\u2190 \u2192 \u2191 \u2193"),
-                                             QStringLiteral("Pan image")},
-            {QStringLiteral("/"),            QStringLiteral("Zoom to original size")},
-            {QStringLiteral("*"),            QStringLiteral("Zoom to fit screen")},
-            {QStringLiteral("+ / \u2212"),   QStringLiteral("Zoom in / out")},
-            {QStringLiteral("I"),            QStringLiteral("Toggle EXIF info")},
-            {QStringLiteral("E"),            QStringLiteral("Edit caption")},
-            {QStringLiteral("F11"),          QStringLiteral("Toggle fullscreen")},
-        };
-        const int count = static_cast<int>(std::size(shortcuts));
+        const ShortcutManager &sc = ShortcutManager::instance();
+
+        // Build the shortcut table dynamically from current bindings.
+        // Some actions are grouped together for display (e.g. pan directions).
+        struct HelpEntry { QString key; QString desc; };
+        QList<HelpEntry> entries;
+
+        entries.append({sc.displayKey(ShortcutManager::ToggleHelp),
+                        sc.description(ShortcutManager::ToggleHelp)});
+        entries.append({sc.displayKey(ShortcutManager::CloseViewer)
+                        + " / " + sc.displayKey(ShortcutManager::CloseViewerAlt),
+                        QStringLiteral("Close viewer")});
+        entries.append({sc.displayKey(ShortcutManager::NextImage)
+                        + " / " + sc.displayKey(ShortcutManager::PrevImage),
+                        QStringLiteral("Next / previous image")});
+        entries.append({sc.displayKey(ShortcutManager::PanLeft)
+                        + " " + sc.displayKey(ShortcutManager::PanRight)
+                        + " " + sc.displayKey(ShortcutManager::PanUp)
+                        + " " + sc.displayKey(ShortcutManager::PanDown),
+                        QStringLiteral("Pan image")});
+        entries.append({sc.displayKey(ShortcutManager::ZoomOriginal),
+                        sc.description(ShortcutManager::ZoomOriginal)});
+        entries.append({sc.displayKey(ShortcutManager::ZoomFit),
+                        sc.description(ShortcutManager::ZoomFit)});
+        entries.append({sc.displayKey(ShortcutManager::ZoomIn)
+                        + " / " + sc.displayKey(ShortcutManager::ZoomOut),
+                        QStringLiteral("Zoom in / out")});
+        entries.append({sc.displayKey(ShortcutManager::ToggleExif),
+                        sc.description(ShortcutManager::ToggleExif)});
+        entries.append({sc.displayKey(ShortcutManager::EditCaption),
+                        sc.description(ShortcutManager::EditCaption)});
+        entries.append({sc.displayKey(ShortcutManager::ToggleFullscreen),
+                        sc.description(ShortcutManager::ToggleFullscreen)});
+
+        const int count = entries.size();
 
         const int padding = 16;
         const int lineH   = 22;
@@ -310,9 +332,9 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
 
         int keyColW  = 0;
         int descColW = 0;
-        for (const auto &s : shortcuts) {
-            keyColW  = qMax(keyColW,  fm.horizontalAdvance(s.first));
-            descColW = qMax(descColW, fm.horizontalAdvance(s.second));
+        for (const auto &e : entries) {
+            keyColW  = qMax(keyColW,  fm.horizontalAdvance(e.key));
+            descColW = qMax(descColW, fm.horizontalAdvance(e.desc));
         }
 
         const int boxW = padding + keyColW + colGap + descColW + padding;
@@ -331,13 +353,13 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
             painter.setPen(QColor(180, 180, 255));
             painter.drawText(QRect(boxX + padding, textY - fm.ascent(), keyColW, lineH),
                              Qt::AlignRight | Qt::AlignVCenter,
-                             shortcuts[i].first);
+                             entries[i].key);
             // Description column — left-aligned, white
             painter.setPen(Qt::white);
             painter.drawText(QRect(boxX + padding + keyColW + colGap,
                                    textY - fm.ascent(), descColW, lineH),
                              Qt::AlignLeft | Qt::AlignVCenter,
-                             shortcuts[i].second);
+                             entries[i].desc);
         }
         painter.restore();
     }
@@ -345,7 +367,9 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
 
 void ImageViewWidget::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_F1)
+    const ShortcutManager &sc = ShortcutManager::instance();
+
+    if (sc.matches(event, ShortcutManager::ToggleHelp))
     {
         m_showHelpOverlay = !m_showHelpOverlay;
         update();
@@ -353,21 +377,22 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
-    if (event->key() == Qt::Key_Escape || event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+    if (sc.matches(event, ShortcutManager::CloseViewer)
+        || sc.matches(event, ShortcutManager::CloseViewerAlt))
     {
         emit closeRequested();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_PageDown)
+    if (sc.matches(event, ShortcutManager::NextImage))
     {
         emit nextRequested();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_PageUp)
+    if (sc.matches(event, ShortcutManager::PrevImage))
     {
         emit previousRequested();
         event->accept();
@@ -376,28 +401,28 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
 
     // Arrow keys for panning
     constexpr int panStep = 50;
-    if (event->key() == Qt::Key_Left)
+    if (sc.matches(event, ShortcutManager::PanLeft))
     {
         m_offset.rx() += panStep;
         update();
         event->accept();
         return;
     }
-    if (event->key() == Qt::Key_Right)
+    if (sc.matches(event, ShortcutManager::PanRight))
     {
         m_offset.rx() -= panStep;
         update();
         event->accept();
         return;
     }
-    if (event->key() == Qt::Key_Up)
+    if (sc.matches(event, ShortcutManager::PanUp))
     {
         m_offset.ry() += panStep;
         update();
         event->accept();
         return;
     }
-    if (event->key() == Qt::Key_Down)
+    if (sc.matches(event, ShortcutManager::PanDown))
     {
         m_offset.ry() -= panStep;
         update();
@@ -405,42 +430,42 @@ void ImageViewWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
-    if (event->key() == Qt::Key_Slash)
+    if (sc.matches(event, ShortcutManager::ZoomOriginal))
     {
         zoomOriginal();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_Asterisk)
+    if (sc.matches(event, ShortcutManager::ZoomFit))
     {
         zoomFitToScreen();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_Plus)
+    if (sc.matches(event, ShortcutManager::ZoomIn))
     {
         zoomIn();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_Minus)
+    if (sc.matches(event, ShortcutManager::ZoomOut))
     {
         zoomOut();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_I)
+    if (sc.matches(event, ShortcutManager::ToggleExif))
     {
         toggleExifOverlay();
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_E)
+    if (sc.matches(event, ShortcutManager::EditCaption))
     {
         emit editCaptionRequested();
         event->accept();

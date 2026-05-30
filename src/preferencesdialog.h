@@ -1,10 +1,14 @@
 #pragma once
 
 #include <QDialog>
+#include <QKeySequence>
+#include <QMap>
 
 class QComboBox;
 class QCheckBox;
 class QSpinBox;
+class QTabWidget;
+class QTableWidget;
 
 class PreferencesDialog : public QDialog
 {
@@ -28,13 +32,22 @@ public:
     bool getResetLayout() const;
     void setResetLayout(bool reset);
 
+    QMap<int, QKeySequence> getShortcuts() const;
+    void setShortcuts(const QMap<int, QKeySequence> &map);
+
 signals:
     void resetLayoutRequested();
 
 private:
+    void setupGeneralTab(QTabWidget *tabs);
+    void setupShortcutsTab(QTabWidget *tabs);
+    void highlightConflicts();
+
     QComboBox *m_backgroundColorCombo;
     QSpinBox  *m_cacheSizeSpinBox;
     QComboBox *m_thumbnailSizeCombo;
     QCheckBox *m_lockDockingCheck;
     QCheckBox *m_resetLayoutCheck;
+    QTableWidget *m_shortcutsTable = nullptr;
+    QList<int> m_rowToAction;  // maps table row → ShortcutManager::Action
 };

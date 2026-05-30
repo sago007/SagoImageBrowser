@@ -1,4 +1,5 @@
 #include "preferencesdialog.h"
+#include "shortcutmanager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -8,17 +9,49 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QGroupBox>
+#include <QTabWidget>
+#include <QTableWidget>
+#include <QKeySequenceEdit>
+#include <QHeaderView>
 
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle("Preferences");
     setModal(true);
-    setMinimumWidth(400);
+    setMinimumWidth(500);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-    QGroupBox *imageGroup = new QGroupBox("Image Viewer", this);
+    QTabWidget *tabs = new QTabWidget(this);
+    setupGeneralTab(tabs);
+    setupShortcutsTab(tabs);
+    mainLayout->addWidget(tabs);
+
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    QPushButton *okButton = new QPushButton("OK");
+    QPushButton *cancelButton = new QPushButton("Cancel");
+
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(okButton);
+    buttonLayout->addWidget(cancelButton);
+
+    mainLayout->addLayout(buttonLayout);
+
+    connect(okButton, &QPushButton::clicked, this, [this]() {
+        if (m_resetLayoutCheck->isChecked())
+            emit resetLayoutRequested();
+        accept();
+    });
+    connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+}
+
+void PreferencesDialog::setupGeneralTab(QTabWidget *tabs)
+{
+    QWidget *page = new QWidget;
+    QVBoxLayout *pageLayout = new QVBoxLayout(page);
+
+    QGroupBox *imageGroup = new QGroupBox("Image Viewer", page);
     QVBoxLayout *groupLayout = new QVBoxLayout(imageGroup);
 
     QHBoxLayout *bgColorLayout = new QHBoxLayout;
@@ -54,36 +87,192 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     thumbSizeLayout->addStretch();
     groupLayout->addLayout(thumbSizeLayout);
 
-    mainLayout->addWidget(imageGroup);
+    pageLayout->addWidget(imageGroup);
 
-    QGroupBox *layoutGroup = new QGroupBox("Layout", this);
+    QGroupBox *layoutGroup = new QGroupBox("Layout", page);
     QVBoxLayout *layoutGroupLayout = new QVBoxLayout(layoutGroup);
     m_lockDockingCheck = new QCheckBox("Lock docking (prevent accidental moves)");
     layoutGroupLayout->addWidget(m_lockDockingCheck);
-    
+
     m_resetLayoutCheck = new QCheckBox("Reset layout to default when closing the menu");
     layoutGroupLayout->addWidget(m_resetLayoutCheck);
-    
-    mainLayout->addWidget(layoutGroup);
 
-    mainLayout->addStretch();
+    pageLayout->addWidget(layoutGroup);
+    pageLayout->addStretch();
 
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    QPushButton *okButton = new QPushButton("OK");
-    QPushButton *cancelButton = new QPushButton("Cancel");
+    tabs->addTab(page, "General");
+}
 
-    buttonLayout->addStretch();
-    buttonLayout->addWidget(okButton);
-    buttonLayout->addWidget(cancelButton);
+void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
+{
+    QWidget *page = new QWidget;
+    QVBoxLayout *pageLayout = new QVBoxLayout(page);
 
-    mainLayout->addLayout(buttonLayout);
+    // Count configurable actions to size the table (plus 2 section header rows)
+    int configurableCount = 0;
+    for (int i = 0; i < ShortcutManager::ActionCount; ++i) {
+        if (ShortcutManager::actionCategory(static_cast<ShortcutManager::Action>(i))
+            != ShortcutManager::CatNotConfigurable)
+            ++configurableCount;
+    }
+    // +2 for section headers (Image Viewer, Browser)
+    const int totalRows = configurableCount + 2;
 
-    connect(okButton, &QPushButton::clicked, this, [this]() {
-        if (m_resetLayoutCheck->isChecked())
-            emit resetLayoutRequested();
-        accept();
+    m_shortcutsTable = new QTableWidget(totalRows, 2, page);
+    m_shortcutsTable->setHorizontalHeaderLabels({"Action", "Key"});
+    m_shortcutsTable->horizontalHeader()->setStretchLastSection(true);
+    m_shortcutsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_shortcutsTable->verticalHeader()->hide();
+    m_shortcutsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    m_rowToAction.clear();
+    const ShortcutManager &mgr = ShortcutManager::instance();
+    int row = 0;
+
+    auto addSectionHeader = [&](const QString &title) {
+        auto *item = new QTableWidgetItem(title);
+        item->setFlags(Qt::NoItemFlags);
+        QFont f = item->font();
+        f.setBold(true);
+        item->setFont(f);
+        item->setBackground(palette().alternateBase());
+        m_shortcutsTable->setItem(row, 0, item);
+        auto *emptyItem = new QTableWidgetItem();
+        emptyItem->setFlags(Qt::NoItemFlags);
+        emptyItem->setBackground(palette().alternateBase());
+        m_shortcutsTable->setItem(row, 1, emptyItem);
+        m_rowToAction.append(-1); // -1 = section header
+        ++row;
+    };
+
+    auto addAction = [&](ShortcutManager::Action action) {
+        auto *descItem = new QTableWidgetItem(mgr.description(action));
+        descItem->setFlags(descItem->flags() & ~Qt::ItemIsEditable);
+        m_shortcutsTable->setItem(row, 0, descItem);
+
+        auto *edit = new QKeySequenceEdit(mgr.shortcut(action));
+        edit->setMaximumSequenceLength(1);
+        connect(edit, &QKeySequenceEdit::keySequenceChanged, this, [this]() {
+            highlightConflicts();
+        });
+        m_shortcutsTable->setCellWidget(row, 1, edit);
+        m_rowToAction.append(static_cast<int>(action));
+        ++row;
+    };
+
+    // Image Viewer section
+    addSectionHeader("Image Viewer");
+    for (int i = 0; i < ShortcutManager::ActionCount; ++i) {
+        auto action = static_cast<ShortcutManager::Action>(i);
+        if (ShortcutManager::actionCategory(action) == ShortcutManager::CatImageViewer)
+            addAction(action);
+    }
+
+    // Browser section
+    addSectionHeader("Browser");
+    for (int i = 0; i < ShortcutManager::ActionCount; ++i) {
+        auto action = static_cast<ShortcutManager::Action>(i);
+        if (ShortcutManager::actionCategory(action) == ShortcutManager::CatBrowser)
+            addAction(action);
+    }
+
+    pageLayout->addWidget(m_shortcutsTable);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout;
+    QPushButton *resetBtn = new QPushButton("Reset to Defaults");
+    btnLayout->addStretch();
+    btnLayout->addWidget(resetBtn);
+    pageLayout->addLayout(btnLayout);
+
+    connect(resetBtn, &QPushButton::clicked, this, [this]() {
+        for (int r = 0; r < m_rowToAction.size(); ++r) {
+            int actionIdx = m_rowToAction[r];
+            if (actionIdx < 0)
+                continue;
+            auto *edit = qobject_cast<QKeySequenceEdit *>(
+                m_shortcutsTable->cellWidget(r, 1));
+            if (edit)
+                edit->setKeySequence(ShortcutManager::defaultShortcut(
+                    static_cast<ShortcutManager::Action>(actionIdx)));
+        }
+        highlightConflicts();
     });
-    connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+
+    tabs->addTab(page, "Shortcuts");
+}
+
+void PreferencesDialog::highlightConflicts()
+{
+    // Group sequences by category, then detect conflicts within each category.
+    // key: (category, sequenceString) → list of rows
+    QMap<QPair<int,QString>, QList<int>> catSeqToRows;
+
+    for (int r = 0; r < m_rowToAction.size(); ++r) {
+        int actionIdx = m_rowToAction[r];
+        if (actionIdx < 0)
+            continue;
+        auto *edit = qobject_cast<QKeySequenceEdit *>(
+            m_shortcutsTable->cellWidget(r, 1));
+        if (!edit)
+            continue;
+        QString s = edit->keySequence().toString();
+        if (!s.isEmpty()) {
+            int cat = ShortcutManager::actionCategory(
+                static_cast<ShortcutManager::Action>(actionIdx));
+            catSeqToRows[{cat, s}].append(r);
+        }
+    }
+
+    // Reset all backgrounds
+    for (int r = 0; r < m_rowToAction.size(); ++r) {
+        if (m_rowToAction[r] < 0)
+            continue;
+        QTableWidgetItem *item = m_shortcutsTable->item(r, 0);
+        if (item)
+            item->setBackground(QBrush());
+    }
+
+    // Highlight conflicts (only within same category)
+    for (auto it = catSeqToRows.cbegin(); it != catSeqToRows.cend(); ++it) {
+        if (it.value().size() > 1) {
+            for (int r : it.value()) {
+                QTableWidgetItem *item = m_shortcutsTable->item(r, 0);
+                if (item)
+                    item->setBackground(QColor(255, 100, 100, 80));
+            }
+        }
+    }
+}
+
+QMap<int, QKeySequence> PreferencesDialog::getShortcuts() const
+{
+    QMap<int, QKeySequence> map;
+    for (int r = 0; r < m_rowToAction.size(); ++r) {
+        int actionIdx = m_rowToAction[r];
+        if (actionIdx < 0)
+            continue;
+        auto *edit = qobject_cast<QKeySequenceEdit *>(
+            m_shortcutsTable->cellWidget(r, 1));
+        if (edit)
+            map[actionIdx] = edit->keySequence();
+    }
+    return map;
+}
+
+void PreferencesDialog::setShortcuts(const QMap<int, QKeySequence> &map)
+{
+    for (int r = 0; r < m_rowToAction.size(); ++r) {
+        int actionIdx = m_rowToAction[r];
+        if (actionIdx < 0)
+            continue;
+        if (!map.contains(actionIdx))
+            continue;
+        auto *edit = qobject_cast<QKeySequenceEdit *>(
+            m_shortcutsTable->cellWidget(r, 1));
+        if (edit)
+            edit->setKeySequence(map[actionIdx]);
+    }
+    highlightConflicts();
 }
 
 QString PreferencesDialog::getBackgroundColor() const

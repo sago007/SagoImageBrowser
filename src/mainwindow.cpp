@@ -2,6 +2,7 @@
 #include "imagemodel.h"
 #include "imageviewwidget.h"
 #include "preferencesdialog.h"
+#include "shortcutmanager.h"
 #include "thumbnailcache.h"
 #include "exifreader.h"
 #include "fsdirmodel.h"
@@ -587,14 +588,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     // time, so this handler and any signal slot can never interleave.  All widget
     // state (m_wasMaximized, m_stack, fullscreen flag) is only accessed from the
     // main thread.
-    if (event->key() == Qt::Key_F11 && m_stack->currentWidget() == m_imageView)
+    const ShortcutManager &sc = ShortcutManager::instance();
+
+    if (sc.matches(event, ShortcutManager::ToggleFullscreen)
+        && m_stack->currentWidget() == m_imageView)
     {
         setFullScreenMode(!isFullScreen());
         event->accept();
         return;
     }
 
-    if (event->key() == Qt::Key_Return && m_stack->currentWidget() == m_browserPage)
+    if (sc.matches(event, ShortcutManager::ActivateEntry)
+        && m_stack->currentWidget() == m_browserPage)
     {
         QModelIndex current = m_listView->currentIndex();
         if (current.isValid())
@@ -652,6 +657,7 @@ void MainWindow::loadPreferences()
     m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
     m_thumbnailCacheSizePreference = settings.value("thumbnailCacheSize", "normal").toString();
     m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
+    ShortcutManager::instance().load(settings);
     if (settings.contains("windowGeometry"))
         restoreGeometry(settings.value("windowGeometry").toByteArray());
     if (settings.contains("windowState"))
@@ -665,6 +671,7 @@ void MainWindow::savePreferences()
     settings.setValue("lockDocking", m_lockDockingPreference);
     settings.setValue("folderCacheSize", m_folderCacheSizePreference);
     settings.setValue("thumbnailCacheSize", m_thumbnailCacheSizePreference);
+    ShortcutManager::instance().save(settings);
     settings.setValue("windowGeometry", saveGeometry());
     settings.setValue("windowState", saveState());
 }
@@ -676,6 +683,15 @@ void MainWindow::onPreferencesTriggered()
     dialog.setLockDocking(m_lockDockingPreference);
     dialog.setCacheSize(m_folderCacheSizePreference);
     dialog.setThumbnailCacheSize(m_thumbnailCacheSizePreference);
+
+    // Populate shortcuts tab from current bindings
+    {
+        QMap<int, QKeySequence> scMap;
+        for (int i = 0; i < ShortcutManager::ActionCount; ++i)
+            scMap[i] = ShortcutManager::instance().shortcut(
+                static_cast<ShortcutManager::Action>(i));
+        dialog.setShortcuts(scMap);
+    }
 
     bool shouldResetLayout = false;
     connect(&dialog, &PreferencesDialog::resetLayoutRequested, this, [&shouldResetLayout]() {
@@ -697,6 +713,13 @@ void MainWindow::onPreferencesTriggered()
             m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
             loadVisibleThumbnails();
         }
+
+        // Apply shortcut changes
+        QMap<int, QKeySequence> scMap = dialog.getShortcuts();
+        for (auto it = scMap.cbegin(); it != scMap.cend(); ++it)
+            ShortcutManager::instance().setShortcut(
+                static_cast<ShortcutManager::Action>(it.key()), it.value());
+
         savePreferences();
     }
     

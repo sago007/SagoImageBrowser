@@ -24,6 +24,8 @@ qt_add_executable(SagoImageBrowser
     src/imageviewwidget.h
     src/preferencesdialog.cpp
     src/preferencesdialog.h
+    src/shortcutmanager.cpp
+    src/shortcutmanager.h
     src/exifreader.cpp
     src/exifreader.h
     src/pathcompletermodel.cpp
