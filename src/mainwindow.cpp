@@ -580,6 +580,13 @@ void MainWindow::setFullScreenMode(bool fullScreen)
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    // THREADING: No race condition with F11 fullscreen toggle.  All cross-thread
+    // signal deliveries (thumbnailReady via explicit QueuedConnection,
+    // onImageLoaded via AutoConnection resolving to QueuedConnection) execute on
+    // the main thread's event loop.  The event loop processes events one at a
+    // time, so this handler and any signal slot can never interleave.  All widget
+    // state (m_wasMaximized, m_stack, fullscreen flag) is only accessed from the
+    // main thread.
     if (event->key() == Qt::Key_F11 && m_stack->currentWidget() == m_imageView)
     {
         setFullScreenMode(!isFullScreen());

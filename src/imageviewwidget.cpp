@@ -19,6 +19,12 @@ ImageLoadWorker::ImageLoadWorker(const QByteArray &path, QObject *parent)
 {
 }
 
+// THREADING: This function runs on its own QThread, NOT the main thread.
+// It must not access any ImageViewWidget member state.  The only data it uses
+// is m_path which is immutable after construction.  The emitted imageLoaded()
+// signal is delivered to the main thread via Qt::AutoConnection which resolves
+// to QueuedConnection at emit time (worker thread != receiver's main-thread
+// affinity), so onImageLoaded() always executes on the main thread.
 void ImageLoadWorker::run()
 {
     int fd = ::open(m_path.constData(), O_RDONLY | O_CLOEXEC);
@@ -133,6 +139,10 @@ void ImageViewWidget::prefetchImage(const QByteArray &path)
 
     m_pendingLoads.insert(path);
     auto *worker = new ImageLoadWorker(path, this);
+    // THREADING: Qt::AutoConnection (default) resolves to QueuedConnection at
+    // emit time because ImageLoadWorker::run() emits from its worker thread
+    // while 'this' (ImageViewWidget) has main-thread affinity.  This guarantees
+    // onImageLoaded() always runs on the main thread — no mutex needed.
     connect(worker, &ImageLoadWorker::imageLoaded, this, &ImageViewWidget::onImageLoaded);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
     worker->start();

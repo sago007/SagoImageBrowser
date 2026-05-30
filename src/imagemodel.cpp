@@ -240,6 +240,9 @@ void ImageModel::queueRow(int row)
         m_thumbnailSize,
         &m_cancelFlag);
 
+    // THREADING: Explicit QueuedConnection ensures thumbnailReady() is invoked
+    // on the main thread even though the signal is emitted from a pool thread.
+    // This means all m_items[] mutations happen on the main thread only.
     connect(worker, &ThumbnailWorker::finished,
             this, &ImageModel::thumbnailReady,
             Qt::QueuedConnection);

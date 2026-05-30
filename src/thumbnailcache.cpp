@@ -59,6 +59,9 @@ bool ThumbnailCache::isInsideCache(const QByteArray &absPath)
     return absPath.startsWith(root + '/') || absPath == root;
 }
 
+// THREADING: Called from worker threads (ThumbnailWorker::run()).  This
+// function is free of shared mutable state — it only performs filesystem I/O
+// using its arguments.  Safe to call concurrently from multiple threads.
 QImage ThumbnailCache::load(const QByteArray &sourcePath, Size size)
 {
     struct ::stat st{};
@@ -81,6 +84,10 @@ QImage ThumbnailCache::load(const QByteArray &sourcePath, Size size)
     return img;
 }
 
+// THREADING: Called from worker threads (ThumbnailWorker::run()).  This
+// function is free of shared mutable state — it only performs filesystem I/O
+// using its arguments.  Writes are atomic (temp file + rename) so concurrent
+// calls for different source files are safe.
 void ThumbnailCache::save(const QByteArray &sourcePath, Size size, const QImage &thumbImage)
 {
     if (thumbImage.isNull())

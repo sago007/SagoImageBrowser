@@ -12,6 +12,7 @@ namespace
 {
 constexpr int kDisplaySize = 128;
 
+// THREADING: Pure function called from a worker thread.  No shared mutable state.
 QImage downscaleForDisplay(const QImage &src)
 {
     if (src.isNull())
@@ -36,6 +37,12 @@ ThumbnailWorker::ThumbnailWorker(const QByteArray &path,
     setAutoDelete(true);
 }
 
+// THREADING: This function runs on a QThreadPool worker thread, NOT the main
+// thread.  It must not access any ImageModel state.  The only shared data it
+// touches is the atomic m_cancelFlag (for cooperative cancellation).  All other
+// members (m_path, m_row, m_size) are immutable after construction.  Results
+// are delivered to the main thread via the finished() signal connected with
+// Qt::QueuedConnection.
 void ThumbnailWorker::run()
 {
     if (*m_cancelFlag)
