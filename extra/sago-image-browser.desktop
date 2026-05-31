@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sago Image Browser
+Comment=A fast image browser
+Exec=SagoImageBrowser %f
+Icon=sago_image_browser
+Categories=Graphics;Viewer;
+MimeType=image/jpeg;image/png;image/gif;image/bmp;image/webp;image/tiff;image/svg+xml;
+Terminal=false

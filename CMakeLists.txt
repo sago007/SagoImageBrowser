@@ -4,6 +4,8 @@ project(SagoImageBrowser LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
 
+include(GNUInstallDirs)
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(EXIV2 REQUIRED exiv2)
@@ -42,3 +44,7 @@ target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
 qt_add_translations(SagoImageBrowser
     TS_FILES translations/da.ts
     RESOURCE_PREFIX "/translations")
+
+install(TARGETS SagoImageBrowser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES extra/sago-image-browser.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+install(FILES extra/icons/sago_image_browser.svg DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps)

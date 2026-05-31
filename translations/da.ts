@@ -29,7 +29,7 @@
     </message>
     <message>
         <source>Roots</source>
-        <translation>Rødder</translation>
+        <translation>Steder</translation>
     </message>
     <message>
         <source>Folders</source>
