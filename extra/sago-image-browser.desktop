@@ -5,5 +5,5 @@ Comment=A fast image browser
 Exec=SagoImageBrowser %f
 Icon=sago_image_browser
 Categories=Graphics;Viewer;
-MimeType=image/jpeg;image/png;image/gif;image/bmp;image/webp;image/tiff;image/svg+xml;
+MimeType=image/jpeg;image/png;image/gif;image/bmp;image/webp;image/tiff;image/svg+xml;inode/directory;
 Terminal=false
