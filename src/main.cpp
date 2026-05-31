@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QIcon>
 #include <QLocale>
 #include <QTimer>
 #include <QTranslator>
@@ -7,6 +8,7 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/icons/sago_image_browser.svg"));
 
     QTranslator translator;
     const QString locale = QLocale::system().name();   // e.g. "da_DK"

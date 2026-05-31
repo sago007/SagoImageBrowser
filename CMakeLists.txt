@@ -33,6 +33,9 @@ qt_add_executable(SagoImageBrowser
     src/thumbnaildelegate.cpp
     src/thumbnaildelegate.h)
 
+set_source_files_properties(extra/icons/sago_image_browser.svg PROPERTIES QT_RESOURCE_ALIAS sago_image_browser.svg)
+qt_add_resources(SagoImageBrowser "icons" PREFIX "/icons" FILES extra/icons/sago_image_browser.svg)
+
 target_include_directories(SagoImageBrowser PRIVATE ${EXIV2_INCLUDE_DIRS})
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
 
