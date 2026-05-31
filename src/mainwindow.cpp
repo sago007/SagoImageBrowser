@@ -81,9 +81,9 @@ void MainWindow::setupUi()
         QListWidgetItem *item = new QListWidgetItem(label, m_rootList);
         item->setData(Qt::UserRole, path);
     };
-    addRootItem("Home", QDir::homePath());
-    addRootItem("Pictures", QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
-    addRootItem("File System", QDir::rootPath());
+    addRootItem(tr("Home"), QDir::homePath());
+    addRootItem(tr("Pictures"), QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
+    addRootItem(tr("File System"), QDir::rootPath());
     m_rootList->setCurrentRow(0);
 
     m_treeView = new QTreeView;
@@ -195,14 +195,14 @@ void MainWindow::setupMenuBar()
         "QMenuBar { padding: 1px 2px; }"
         "QMenuBar::item { padding: 2px 6px; }"
     );
-    QMenu *viewMenu = m_menuBar->addMenu("&View");
+    QMenu *viewMenu = m_menuBar->addMenu(tr("&View"));
     viewMenu->addAction(m_rootDock->toggleViewAction());
     viewMenu->addAction(m_folderDock->toggleViewAction());
     viewMenu->addAction(m_previewDock->toggleViewAction());
     viewMenu->addAction(m_exifDock->toggleViewAction());
 
-    QMenu *editMenu = m_menuBar->addMenu("&Edit");
-    QAction *preferencesAction = editMenu->addAction("&Preferences");
+    QMenu *editMenu = m_menuBar->addMenu(tr("&Edit"));
+    QAction *preferencesAction = editMenu->addAction(tr("&Preferences"));
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::onPreferencesTriggered);
 }
 

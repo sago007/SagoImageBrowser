@@ -4,7 +4,7 @@ project(SagoImageBrowser LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(EXIV2 REQUIRED exiv2)
 
@@ -35,3 +35,7 @@ qt_add_executable(SagoImageBrowser
 
 target_include_directories(SagoImageBrowser PRIVATE ${EXIV2_INCLUDE_DIRS})
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
+
+qt_add_translations(SagoImageBrowser
+    TS_FILES translations/da.ts
+    RESOURCE_PREFIX "/translations")

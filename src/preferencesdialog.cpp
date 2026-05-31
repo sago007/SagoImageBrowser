@@ -17,7 +17,7 @@
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle("Preferences");
+    setWindowTitle(tr("Preferences"));
     setModal(true);
     setMinimumWidth(500);
 
@@ -29,8 +29,8 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     mainLayout->addWidget(tabs);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
-    QPushButton *okButton = new QPushButton("OK");
-    QPushButton *cancelButton = new QPushButton("Cancel");
+    QPushButton *okButton = new QPushButton(tr("OK"));
+    QPushButton *cancelButton = new QPushButton(tr("Cancel"));
 
     buttonLayout->addStretch();
     buttonLayout->addWidget(okButton);
@@ -51,15 +51,15 @@ void PreferencesDialog::setupGeneralTab(QTabWidget *tabs)
     QWidget *page = new QWidget;
     QVBoxLayout *pageLayout = new QVBoxLayout(page);
 
-    QGroupBox *imageGroup = new QGroupBox("Image Viewer", page);
+    QGroupBox *imageGroup = new QGroupBox(tr("Image Viewer"), page);
     QVBoxLayout *groupLayout = new QVBoxLayout(imageGroup);
 
     QHBoxLayout *bgColorLayout = new QHBoxLayout;
-    QLabel *bgColorLabel = new QLabel("Background Color:");
+    QLabel *bgColorLabel = new QLabel(tr("Background Color:"));
     m_backgroundColorCombo = new QComboBox;
-    m_backgroundColorCombo->addItem("Black", "black");
-    m_backgroundColorCombo->addItem("White", "white");
-    m_backgroundColorCombo->addItem("Dark Gray", "darkgray");
+    m_backgroundColorCombo->addItem(tr("Black"), "black");
+    m_backgroundColorCombo->addItem(tr("White"), "white");
+    m_backgroundColorCombo->addItem(tr("Dark Gray"), "darkgray");
 
     bgColorLayout->addWidget(bgColorLabel);
     bgColorLayout->addWidget(m_backgroundColorCombo);
@@ -68,7 +68,7 @@ void PreferencesDialog::setupGeneralTab(QTabWidget *tabs)
     groupLayout->addLayout(bgColorLayout);
 
     QHBoxLayout *cacheSizeLayout = new QHBoxLayout;
-    QLabel *cacheSizeLabel = new QLabel("Folder thumbnail cache (folders):");
+    QLabel *cacheSizeLabel = new QLabel(tr("Folder thumbnail cache (folders):"));
     m_cacheSizeSpinBox = new QSpinBox;
     m_cacheSizeSpinBox->setRange(1, 20);
     m_cacheSizeSpinBox->setValue(4);
@@ -78,10 +78,10 @@ void PreferencesDialog::setupGeneralTab(QTabWidget *tabs)
     groupLayout->addLayout(cacheSizeLayout);
 
     QHBoxLayout *thumbSizeLayout = new QHBoxLayout;
-    QLabel *thumbSizeLabel = new QLabel("Thumbnail cache size:");
+    QLabel *thumbSizeLabel = new QLabel(tr("Thumbnail cache size:"));
     m_thumbnailSizeCombo = new QComboBox;
-    m_thumbnailSizeCombo->addItem("Normal (128 px)", "normal");
-    m_thumbnailSizeCombo->addItem("Large (256 px)", "large");
+    m_thumbnailSizeCombo->addItem(tr("Normal (128 px)"), "normal");
+    m_thumbnailSizeCombo->addItem(tr("Large (256 px)"), "large");
     thumbSizeLayout->addWidget(thumbSizeLabel);
     thumbSizeLayout->addWidget(m_thumbnailSizeCombo);
     thumbSizeLayout->addStretch();
@@ -89,18 +89,18 @@ void PreferencesDialog::setupGeneralTab(QTabWidget *tabs)
 
     pageLayout->addWidget(imageGroup);
 
-    QGroupBox *layoutGroup = new QGroupBox("Layout", page);
+    QGroupBox *layoutGroup = new QGroupBox(tr("Layout"), page);
     QVBoxLayout *layoutGroupLayout = new QVBoxLayout(layoutGroup);
-    m_lockDockingCheck = new QCheckBox("Lock docking (prevent accidental moves)");
+    m_lockDockingCheck = new QCheckBox(tr("Lock docking (prevent accidental moves)"));
     layoutGroupLayout->addWidget(m_lockDockingCheck);
 
-    m_resetLayoutCheck = new QCheckBox("Reset layout to default when closing the menu");
+    m_resetLayoutCheck = new QCheckBox(tr("Reset layout to default when closing the menu"));
     layoutGroupLayout->addWidget(m_resetLayoutCheck);
 
     pageLayout->addWidget(layoutGroup);
     pageLayout->addStretch();
 
-    tabs->addTab(page, "General");
+    tabs->addTab(page, tr("General"));
 }
 
 void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
@@ -119,7 +119,7 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
     const int totalRows = configurableCount + 2;
 
     m_shortcutsTable = new QTableWidget(totalRows, 2, page);
-    m_shortcutsTable->setHorizontalHeaderLabels({"Action", "Key"});
+    m_shortcutsTable->setHorizontalHeaderLabels({tr("Action"), tr("Key")});
     m_shortcutsTable->horizontalHeader()->setStretchLastSection(true);
     m_shortcutsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_shortcutsTable->verticalHeader()->hide();
@@ -151,7 +151,9 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
         m_shortcutsTable->setItem(row, 0, descItem);
 
         auto *edit = new QKeySequenceEdit(mgr.shortcut(action));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         edit->setMaximumSequenceLength(1);
+#endif
         connect(edit, &QKeySequenceEdit::keySequenceChanged, this, [this]() {
             highlightConflicts();
         });
@@ -161,7 +163,7 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
     };
 
     // Image Viewer section
-    addSectionHeader("Image Viewer");
+    addSectionHeader(tr("Image Viewer"));
     for (int i = 0; i < ShortcutManager::ActionCount; ++i) {
         auto action = static_cast<ShortcutManager::Action>(i);
         if (ShortcutManager::actionCategory(action) == ShortcutManager::CatImageViewer)
@@ -169,7 +171,7 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
     }
 
     // Browser section
-    addSectionHeader("Browser");
+    addSectionHeader(tr("Browser"));
     for (int i = 0; i < ShortcutManager::ActionCount; ++i) {
         auto action = static_cast<ShortcutManager::Action>(i);
         if (ShortcutManager::actionCategory(action) == ShortcutManager::CatBrowser)
@@ -179,7 +181,7 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
     pageLayout->addWidget(m_shortcutsTable);
 
     QHBoxLayout *btnLayout = new QHBoxLayout;
-    QPushButton *resetBtn = new QPushButton("Reset to Defaults");
+    QPushButton *resetBtn = new QPushButton(tr("Reset to Defaults"));
     btnLayout->addStretch();
     btnLayout->addWidget(resetBtn);
     pageLayout->addLayout(btnLayout);
@@ -198,7 +200,7 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
         highlightConflicts();
     });
 
-    tabs->addTab(page, "Shortcuts");
+    tabs->addTab(page, tr("Shortcuts"));
 }
 
 void PreferencesDialog::highlightConflicts()

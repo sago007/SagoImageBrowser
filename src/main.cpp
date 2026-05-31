@@ -1,10 +1,17 @@
 #include <QApplication>
+#include <QLocale>
 #include <QTimer>
+#include <QTranslator>
 #include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    QTranslator translator;
+    const QString locale = QLocale::system().name();   // e.g. "da_DK"
+    if (translator.load(":/translations/" + locale.left(2)))
+        app.installTranslator(&translator);
 
     MainWindow w;
     w.showMaximized();

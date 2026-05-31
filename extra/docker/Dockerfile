@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     cmake \
     pkg-config \
     qt6-base-dev \
+    qt6-tools-dev \
+    qt6-l10n-tools \
     libqt6core6 \
     libqt6gui6 \
     libqt6widgets6 \

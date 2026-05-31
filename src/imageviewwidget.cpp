@@ -296,22 +296,22 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
                         sc.description(ShortcutManager::ToggleHelp)});
         entries.append({sc.displayKey(ShortcutManager::CloseViewer)
                         + " / " + sc.displayKey(ShortcutManager::CloseViewerAlt),
-                        QStringLiteral("Close viewer")});
+                        tr("Close viewer")});
         entries.append({sc.displayKey(ShortcutManager::NextImage)
                         + " / " + sc.displayKey(ShortcutManager::PrevImage),
-                        QStringLiteral("Next / previous image")});
+                        tr("Next / previous image")});
         entries.append({sc.displayKey(ShortcutManager::PanLeft)
                         + " " + sc.displayKey(ShortcutManager::PanRight)
                         + " " + sc.displayKey(ShortcutManager::PanUp)
                         + " " + sc.displayKey(ShortcutManager::PanDown),
-                        QStringLiteral("Pan image")});
+                        tr("Pan image")});
         entries.append({sc.displayKey(ShortcutManager::ZoomOriginal),
                         sc.description(ShortcutManager::ZoomOriginal)});
         entries.append({sc.displayKey(ShortcutManager::ZoomFit),
                         sc.description(ShortcutManager::ZoomFit)});
         entries.append({sc.displayKey(ShortcutManager::ZoomIn)
                         + " / " + sc.displayKey(ShortcutManager::ZoomOut),
-                        QStringLiteral("Zoom in / out")});
+                        tr("Zoom in / out")});
         entries.append({sc.displayKey(ShortcutManager::ToggleExif),
                         sc.description(ShortcutManager::ToggleExif)});
         entries.append({sc.displayKey(ShortcutManager::EditCaption),

@@ -1,5 +1,6 @@
 #include "shortcutmanager.h"
 
+#include <QCoreApplication>
 #include <QKeyEvent>
 #include <QSettings>
 
@@ -14,25 +15,25 @@ struct ActionInfo {
 
 // Order must match ShortcutManager::Action enum
 static const ActionInfo kDefaults[ShortcutManager::ActionCount] = {
-    {"ToggleHelp",      "Show/hide keyboard shortcuts", QKeySequence(Qt::Key_F1),       ShortcutManager::CatNotConfigurable},
-    {"CloseViewer",     "Close viewer",                 QKeySequence(Qt::Key_Escape),   ShortcutManager::CatImageViewer},
-    {"CloseViewerAlt",  "Close viewer (alt)",           QKeySequence(Qt::Key_Return),   ShortcutManager::CatImageViewer},
-    {"NextImage",       "Next image",                   QKeySequence(Qt::Key_PageDown), ShortcutManager::CatImageViewer},
-    {"PrevImage",       "Previous image",               QKeySequence(Qt::Key_PageUp),   ShortcutManager::CatImageViewer},
-    {"PanLeft",         "Pan left",                     QKeySequence(Qt::Key_Left),     ShortcutManager::CatImageViewer},
-    {"PanRight",        "Pan right",                    QKeySequence(Qt::Key_Right),    ShortcutManager::CatImageViewer},
-    {"PanUp",           "Pan up",                       QKeySequence(Qt::Key_Up),       ShortcutManager::CatImageViewer},
-    {"PanDown",         "Pan down",                     QKeySequence(Qt::Key_Down),     ShortcutManager::CatImageViewer},
-    {"ZoomOriginal",    "Zoom to original size",        QKeySequence(Qt::Key_Slash),    ShortcutManager::CatImageViewer},
-    {"ZoomFit",         "Zoom to fit screen",           QKeySequence(Qt::Key_Asterisk), ShortcutManager::CatImageViewer},
-    {"ZoomIn",          "Zoom in",                      QKeySequence(Qt::Key_Plus),     ShortcutManager::CatImageViewer},
-    {"ZoomOut",         "Zoom out",                     QKeySequence(Qt::Key_Minus),    ShortcutManager::CatImageViewer},
-    {"ToggleExif",      "Toggle EXIF info",             QKeySequence(Qt::Key_I),        ShortcutManager::CatImageViewer},
-    {"EditCaption",     "Edit caption",                 QKeySequence(Qt::Key_E),        ShortcutManager::CatImageViewer},
-    {"ToggleFullscreen","Toggle fullscreen",            QKeySequence(Qt::Key_F11),      ShortcutManager::CatImageViewer},
-    {"ActivateEntry",   "Open folder / image",          QKeySequence(Qt::Key_Return),   ShortcutManager::CatBrowser},
-    {"PrevFolder",      "Previous folder",              QKeySequence(Qt::CTRL | Qt::Key_Left),  ShortcutManager::CatBrowser},
-    {"NextFolder",      "Next folder",                  QKeySequence(Qt::CTRL | Qt::Key_Right), ShortcutManager::CatBrowser},
+    {"ToggleHelp",      QT_TR_NOOP("Show/hide keyboard shortcuts"), QKeySequence(Qt::Key_F1),       ShortcutManager::CatNotConfigurable},
+    {"CloseViewer",     QT_TR_NOOP("Close viewer"),                 QKeySequence(Qt::Key_Escape),   ShortcutManager::CatImageViewer},
+    {"CloseViewerAlt",  QT_TR_NOOP("Close viewer (alt)"),           QKeySequence(Qt::Key_Return),   ShortcutManager::CatImageViewer},
+    {"NextImage",       QT_TR_NOOP("Next image"),                   QKeySequence(Qt::Key_PageDown), ShortcutManager::CatImageViewer},
+    {"PrevImage",       QT_TR_NOOP("Previous image"),               QKeySequence(Qt::Key_PageUp),   ShortcutManager::CatImageViewer},
+    {"PanLeft",         QT_TR_NOOP("Pan left"),                     QKeySequence(Qt::Key_Left),     ShortcutManager::CatImageViewer},
+    {"PanRight",        QT_TR_NOOP("Pan right"),                    QKeySequence(Qt::Key_Right),    ShortcutManager::CatImageViewer},
+    {"PanUp",           QT_TR_NOOP("Pan up"),                       QKeySequence(Qt::Key_Up),       ShortcutManager::CatImageViewer},
+    {"PanDown",         QT_TR_NOOP("Pan down"),                     QKeySequence(Qt::Key_Down),     ShortcutManager::CatImageViewer},
+    {"ZoomOriginal",    QT_TR_NOOP("Zoom to original size"),        QKeySequence(Qt::Key_Slash),    ShortcutManager::CatImageViewer},
+    {"ZoomFit",         QT_TR_NOOP("Zoom to fit screen"),           QKeySequence(Qt::Key_Asterisk), ShortcutManager::CatImageViewer},
+    {"ZoomIn",          QT_TR_NOOP("Zoom in"),                      QKeySequence(Qt::Key_Plus),     ShortcutManager::CatImageViewer},
+    {"ZoomOut",         QT_TR_NOOP("Zoom out"),                     QKeySequence(Qt::Key_Minus),    ShortcutManager::CatImageViewer},
+    {"ToggleExif",      QT_TR_NOOP("Toggle EXIF info"),             QKeySequence(Qt::Key_I),        ShortcutManager::CatImageViewer},
+    {"EditCaption",     QT_TR_NOOP("Edit caption"),                 QKeySequence(Qt::Key_E),        ShortcutManager::CatImageViewer},
+    {"ToggleFullscreen",QT_TR_NOOP("Toggle fullscreen"),            QKeySequence(Qt::Key_F11),      ShortcutManager::CatImageViewer},
+    {"ActivateEntry",   QT_TR_NOOP("Open folder / image"),          QKeySequence(Qt::Key_Return),   ShortcutManager::CatBrowser},
+    {"PrevFolder",      QT_TR_NOOP("Previous folder"),              QKeySequence(Qt::CTRL | Qt::Key_Left),  ShortcutManager::CatBrowser},
+    {"NextFolder",      QT_TR_NOOP("Next folder"),                  QKeySequence(Qt::CTRL | Qt::Key_Right), ShortcutManager::CatBrowser},
 };
 
 } // namespace
@@ -129,7 +130,7 @@ QString ShortcutManager::actionDescription(Action action)
 {
     if (action < 0 || action >= ActionCount)
         return {};
-    return QString::fromLatin1(kDefaults[action].description);
+    return QCoreApplication::translate("ShortcutManager", kDefaults[action].description);
 }
 
 ShortcutManager::Category ShortcutManager::actionCategory(Action action)
