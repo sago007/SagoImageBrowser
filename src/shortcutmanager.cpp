@@ -32,8 +32,8 @@ static const ActionInfo kDefaults[ShortcutManager::ActionCount] = {
     {"EditCaption",     QT_TR_NOOP("Edit caption"),                 QKeySequence(Qt::Key_E),        ShortcutManager::CatImageViewer},
     {"ToggleFullscreen",QT_TR_NOOP("Toggle fullscreen"),            QKeySequence(Qt::Key_F11),      ShortcutManager::CatImageViewer},
     {"ActivateEntry",   QT_TR_NOOP("Open folder / image"),          QKeySequence(Qt::Key_Return),   ShortcutManager::CatBrowser},
-    {"PrevFolder",      QT_TR_NOOP("Previous folder"),              QKeySequence(Qt::CTRL | Qt::Key_Left),  ShortcutManager::CatBrowser},
-    {"NextFolder",      QT_TR_NOOP("Next folder"),                  QKeySequence(Qt::CTRL | Qt::Key_Right), ShortcutManager::CatBrowser},
+    {"PrevFolder",      QT_TR_NOOP("Previous folder"),              QKeySequence(Qt::ALT | Qt::Key_Left),  ShortcutManager::CatBrowser},
+    {"NextFolder",      QT_TR_NOOP("Next folder"),                  QKeySequence(Qt::ALT | Qt::Key_Right), ShortcutManager::CatBrowser},
 };
 
 } // namespace

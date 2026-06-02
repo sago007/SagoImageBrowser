@@ -423,12 +423,35 @@ void MainWindow::setupConnections()
 
     // Also catch resize — visible range changes when the viewport is resized
     m_listView->viewport()->installEventFilter(this);
+
+    // The folder list and tree views consume Ctrl+Left/Ctrl+Right for their own
+    // item navigation, so those keys never reach MainWindow::keyPressEvent.
+    // Filter them here so PrevFolder/NextFolder shortcuts work while a view has focus.
+    m_listView->installEventFilter(this);
+    m_treeView->installEventFilter(this);
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == m_listView->viewport() && event->type() == QEvent::Resize)
         QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+
+    if ((obj == m_listView || obj == m_treeView)
+        && event->type() == QEvent::KeyPress
+        && m_stack->currentWidget() == m_browserPage)
+    {
+        const ShortcutManager &sc = ShortcutManager::instance();
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+
+        if (sc.matches(keyEvent, ShortcutManager::PrevFolder)) {
+            navigateToPrevFolder();
+            return true;
+        }
+        if (sc.matches(keyEvent, ShortcutManager::NextFolder)) {
+            navigateToNextFolder();
+            return true;
+        }
+    }
 
     return QMainWindow::eventFilter(obj, event);
 }
