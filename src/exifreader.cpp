@@ -7,6 +7,7 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <unistd.h>
 
 // Raw EXIF date format is "YYYY:MM:DD HH:MM:SS"; reformat date separators to dashes
@@ -39,7 +40,7 @@ bool ExifData::isEmpty() const
         && dateTime.isEmpty() && make.isEmpty() && model.isEmpty()
         && exposureTime.isEmpty() && fNumber.isEmpty() && iso.isEmpty()
         && focalLength.isEmpty() && flash.isEmpty()
-        && dimensions.isEmpty() && fileSize.isEmpty();
+        && filename.isEmpty() && dimensions.isEmpty() && fileSize.isEmpty();
 }
 
 QList<QPair<QString, QString>> ExifData::toList() const
@@ -55,6 +56,7 @@ QList<QPair<QString, QString>> ExifData::toList() const
     addField(result, "ISO",          iso);
     addField(result, "Focal Length", focalLength);
     addField(result, "Flash",        flash);
+    addField(result, "Filename",     filename);
     addField(result, "Dimensions",   dimensions);
     addField(result, "File Size",    fileSize);
     return result;
@@ -67,6 +69,14 @@ ExifData ExifReader::read(const QByteArray &path)
     struct ::stat st{};
     if (::stat(path.constData(), &st) != 0 || !S_ISREG(st.st_mode))
         return data;
+
+    // Filename
+    {
+        const std::filesystem::path fsPath(path.toStdString());
+        const std::string nativeName = fsPath.filename().native();
+        data.filename = QString::fromLocal8Bit(
+            nativeName.data(), static_cast<qsizetype>(nativeName.size()));
+    }
 
     // File size
     {

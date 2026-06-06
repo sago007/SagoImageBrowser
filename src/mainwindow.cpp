@@ -36,6 +36,7 @@
 #include <QCompleter>
 #include <QClipboard>
 #include <QDialogButtonBox>
+#include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QVBoxLayout>
@@ -635,6 +636,7 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
     QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
     menu.addSeparator();
     QAction *editDescriptionAction = menu.addAction(tr("Edit description"));
+    QAction *moveToTrashAction = menu.addAction(tr("Move to trash"));
 
     QAction *chosen = menu.exec(m_listView->viewport()->mapToGlobal(pos));
     if (chosen == copyFilenameAction) {
@@ -643,7 +645,38 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
         QGuiApplication::clipboard()->setText(displayPath(path));
     } else if (chosen == editDescriptionAction) {
         onEditCaption();
+    } else if (chosen == moveToTrashAction) {
+        moveImageToTrash(path);
     }
+}
+
+void MainWindow::moveImageToTrash(const QByteArray &path)
+{
+    if (path.isEmpty())
+        return;
+
+    const QString fileName = filenameFromPath(path);
+    const QMessageBox::StandardButton answer = QMessageBox::question(
+        this,
+        tr("Move to Trash"),
+        tr("Move \"%1\" to the trash?").arg(fileName),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        QMessageBox::Cancel);
+    if (answer != QMessageBox::Yes)
+        return;
+
+    if (!QFile::moveToTrash(displayPath(path))) {
+        QMessageBox::warning(this, tr("Cannot Move to Trash"),
+            tr("The file could not be moved to the trash.\n\n%1")
+                .arg(displayPath(path)));
+        return;
+    }
+
+    const QByteArray currentDir = m_imageModel->currentDirectory();
+    m_previewLabel->clear();
+    m_exifTable->setRowCount(0);
+    m_imageModel->setDirectory(currentDir);
+    QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
 }
 
 void MainWindow::leaveSingleImageMode()

@@ -16,6 +16,7 @@ struct ExifData {
     QString iso;
     QString focalLength;
     QString flash;
+    QString filename;
     QString dimensions;
     QString fileSize;
 
