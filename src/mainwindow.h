@@ -49,6 +49,7 @@ private:
     void onEditCaption();
     void showImageContextMenu(const QPoint &pos);
     void moveImageToTrash(const QByteArray &path);
+    void moveCurrentImageToTrash();
     void onPathEntered();
     void updatePathField(const QByteArray &path);
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;

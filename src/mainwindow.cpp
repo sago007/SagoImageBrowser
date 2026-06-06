@@ -467,6 +467,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             navigateToNextFolder();
             return true;
         }
+        if (obj == m_listView
+            && sc.matches(keyEvent, ShortcutManager::MoveToTrash)) {
+            moveCurrentImageToTrash();
+            return true;
+        }
     }
 
     return QMainWindow::eventFilter(obj, event);
@@ -637,6 +642,8 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
     menu.addSeparator();
     QAction *editDescriptionAction = menu.addAction(tr("Edit description"));
     QAction *moveToTrashAction = menu.addAction(tr("Move to trash"));
+    moveToTrashAction->setShortcut(
+        ShortcutManager::instance().shortcut(ShortcutManager::MoveToTrash));
 
     QAction *chosen = menu.exec(m_listView->viewport()->mapToGlobal(pos));
     if (chosen == copyFilenameAction) {
@@ -677,6 +684,15 @@ void MainWindow::moveImageToTrash(const QByteArray &path)
     m_exifTable->setRowCount(0);
     m_imageModel->setDirectory(currentDir);
     QTimer::singleShot(0, this, &MainWindow::loadVisibleThumbnails);
+}
+
+void MainWindow::moveCurrentImageToTrash()
+{
+    const QModelIndex index = m_listView->currentIndex();
+    if (!index.isValid() || m_imageModel->isFolder(index))
+        return;
+
+    moveImageToTrash(m_imageModel->filePath(index));
 }
 
 void MainWindow::leaveSingleImageMode()
@@ -795,6 +811,14 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         && m_stack->currentWidget() == m_browserPage)
     {
         navigateToNextFolder();
+        event->accept();
+        return;
+    }
+
+    if (sc.matches(event, ShortcutManager::MoveToTrash)
+        && m_stack->currentWidget() == m_browserPage)
+    {
+        moveCurrentImageToTrash();
         event->accept();
         return;
     }

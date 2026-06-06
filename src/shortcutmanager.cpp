@@ -33,6 +33,7 @@ static const ActionInfo kDefaults[ShortcutManager::ActionCount] = {
     {"ActivateEntry",   QT_TR_NOOP("Open folder / image"),          QKeySequence(Qt::Key_Return),   ShortcutManager::CatBrowser},
     {"PrevFolder",      QT_TR_NOOP("Previous folder"),              QKeySequence(Qt::ALT | Qt::Key_Left),  ShortcutManager::CatBrowser},
     {"NextFolder",      QT_TR_NOOP("Next folder"),                  QKeySequence(Qt::ALT | Qt::Key_Right), ShortcutManager::CatBrowser},
+    {"MoveToTrash",     QT_TR_NOOP("Move image to trash"),          QKeySequence(Qt::Key_Delete),   ShortcutManager::CatBrowser},
 };
 
 } // namespace

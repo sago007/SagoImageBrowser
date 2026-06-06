@@ -30,6 +30,7 @@ public:
         ActivateEntry,
         PrevFolder,
         NextFolder,
+        MoveToTrash,
         ActionCount
     };
 
