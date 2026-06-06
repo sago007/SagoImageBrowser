@@ -1,5 +1,4 @@
 #include <QApplication>
-#include <QIcon>
 #include <QLocale>
 #include <QTimer>
 #include <QTranslator>

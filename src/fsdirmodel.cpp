@@ -1,6 +1,5 @@
 #include "fsdirmodel.h"
 
-#include <QFile>
 #include <QFileIconProvider>
 
 #include <algorithm>

@@ -1,7 +1,6 @@
 #include "imagemodel.h"
 #include "thumbnailworker.h"
 
-#include <QFile>
 #include <QImageReader>
 #include <QFileIconProvider>
 

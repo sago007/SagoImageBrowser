@@ -1,6 +1,5 @@
 #include "shortcutmanager.h"
 
-#include <QCoreApplication>
 #include <QKeyEvent>
 #include <QSettings>
 

@@ -2,7 +2,6 @@
 #include "shortcutmanager.h"
 
 #include <QPainter>
-#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QFile>
 #include <QImageReader>

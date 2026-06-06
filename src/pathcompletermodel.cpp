@@ -1,6 +1,5 @@
 #include "pathcompletermodel.h"
 
-#include <QFile>
 #include <QFileInfo>
 
 #include <algorithm>

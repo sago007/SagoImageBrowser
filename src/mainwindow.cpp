@@ -9,10 +9,7 @@
 #include "pathcompletermodel.h"
 #include "thumbnaildelegate.h"
 
-#include <QFile>
 #include <QTreeView>
-#include <QTreeView>
-#include <QListView>
 #include <QLabel>
 #include <QStackedWidget>
 #include <QDir>
@@ -23,8 +20,6 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QEvent>
-#include <QKeyEvent>
-#include <QCloseEvent>
 #include <QItemSelectionModel>
 #include <QDockWidget>
 #include <QMenuBar>
@@ -33,9 +28,7 @@
 #include <QSettings>
 #include <QTableWidget>
 #include <QDialog>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QDialogButtonBox>
 #include <QPlainTextEdit>
 #include <QMessageBox>
 #include <QLineEdit>
