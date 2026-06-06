@@ -15,6 +15,7 @@ class QTableWidget;
 class QLineEdit;
 class QPushButton;
 class QCompleter;
+class QPoint;
 class ImageModel;
 class ImageViewWidget;
 class PathCompleterModel;
@@ -46,6 +47,7 @@ private:
     void enterSingleImageMode(const QModelIndex &index);
     void leaveSingleImageMode();
     void onEditCaption();
+    void showImageContextMenu(const QPoint &pos);
     void onPathEntered();
     void updatePathField(const QByteArray &path);
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;

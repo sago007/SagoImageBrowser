@@ -34,6 +34,11 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QCompleter>
+#include <QClipboard>
+#include <QDialogButtonBox>
+#include <QFileInfo>
+#include <QGuiApplication>
+#include <QVBoxLayout>
 #include <iostream>
 
 #include <fcntl.h>
@@ -47,6 +52,19 @@ ThumbnailCache::Size thumbnailSizeFromString(const QString &s)
 {
     return (s == "large") ? ThumbnailCache::Size::Large
                           : ThumbnailCache::Size::Normal;
+}
+
+QString displayPath(const QByteArray &path)
+{
+    return QString::fromLocal8Bit(path.constData(), path.size());
+}
+
+QString filenameFromPath(const QByteArray &path)
+{
+    const std::filesystem::path fsPath(path.toStdString());
+    const std::string nativeName = fsPath.filename().native();
+    return QString::fromLocal8Bit(nativeName.data(),
+                                  static_cast<qsizetype>(nativeName.size()));
 }
 } // namespace
 
@@ -101,6 +119,7 @@ void MainWindow::setupUi()
     m_listView->setWordWrap(true);
     m_listView->setTextElideMode(Qt::ElideRight);
     m_listView->setItemDelegate(new ThumbnailDelegate(this));
+    m_listView->setContextMenuPolicy(Qt::CustomContextMenu);
 
     // Preview pane (right)
     m_previewLabel = new QLabel;
@@ -380,6 +399,9 @@ void MainWindow::setupConnections()
                 }
             });
 
+    connect(m_listView, &QListView::customContextMenuRequested,
+            this, &MainWindow::showImageContextMenu);
+
     connect(m_imageView, &ImageViewWidget::closeRequested,
             this, &MainWindow::leaveSingleImageMode);
     connect(m_imageView, &ImageViewWidget::editCaptionRequested,
@@ -550,14 +572,22 @@ void MainWindow::enterSingleImageMode(const QModelIndex &index)
 
 void MainWindow::onEditCaption()
 {
-    const QByteArray path = m_imageView->currentPath();
+    QByteArray path;
+    if (m_stack->currentWidget() == m_imageView) {
+        path = m_imageView->currentPath();
+    } else {
+        const QModelIndex index = m_listView->currentIndex();
+        if (index.isValid() && !m_imageModel->isFolder(index))
+            path = m_imageModel->filePath(index);
+    }
+
     if (path.isEmpty())
         return;
 
     if (::access(path.constData(), W_OK) != 0) {
         QMessageBox::warning(this, tr("Cannot Edit Caption"),
             tr("The file is write-protected and cannot be edited.\n\n%1")
-                .arg(QString::fromLocal8Bit(path)));
+                .arg(displayPath(path)));
         return;
     }
 
@@ -583,8 +613,36 @@ void MainWindow::onEditCaption()
     const QString newCaption = edit->toPlainText();
     if (ExifReader::saveCaption(path, newCaption, data)) {
         ExifData updated = ExifReader::read(path);
-        m_imageView->setExifData(updated);
+        if (m_imageView->currentPath() == path)
+            m_imageView->setExifData(updated);
         updateExifInfo(path);
+    }
+}
+
+void MainWindow::showImageContextMenu(const QPoint &pos)
+{
+    const QModelIndex index = m_listView->indexAt(pos);
+    if (!index.isValid() || m_imageModel->isFolder(index))
+        return;
+
+    m_listView->setCurrentIndex(index);
+    showPreview(index);
+
+    const QByteArray path = m_imageModel->filePath(index);
+
+    QMenu menu(this);
+    QAction *copyFilenameAction = menu.addAction(tr("Copy filename"));
+    QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
+    menu.addSeparator();
+    QAction *editDescriptionAction = menu.addAction(tr("Edit description"));
+
+    QAction *chosen = menu.exec(m_listView->viewport()->mapToGlobal(pos));
+    if (chosen == copyFilenameAction) {
+        QGuiApplication::clipboard()->setText(filenameFromPath(path));
+    } else if (chosen == copyFullPathAction) {
+        QGuiApplication::clipboard()->setText(displayPath(path));
+    } else if (chosen == editDescriptionAction) {
+        onEditCaption();
     }
 }
 
