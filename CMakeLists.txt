@@ -41,7 +41,7 @@ qt_add_resources(SagoImageBrowser "icons" PREFIX "/icons" FILES extra/icons/sago
 target_include_directories(SagoImageBrowser PRIVATE ${EXIV2_INCLUDE_DIRS})
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
 
-add_executable(test_exifreader test_exifreader.cpp src/exifreader.cpp)
+add_executable(test_exifreader test/test_exifreader.cpp src/exifreader.cpp)
 target_include_directories(test_exifreader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${EXIV2_INCLUDE_DIRS})
 target_link_libraries(test_exifreader PRIVATE Qt6::Widgets ${EXIV2_LIBRARIES})
 
