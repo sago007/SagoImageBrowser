@@ -2,6 +2,7 @@
 
 #include <QKeyEvent>
 #include <QSettings>
+#include <QCoreApplication>
 
 namespace {
 
