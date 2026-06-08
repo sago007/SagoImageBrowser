@@ -31,6 +31,8 @@ public:
     QByteArray currentDirectory() const;
 
     void requestThumbnails(int firstRow, int lastRow);
+    // Discard the cached thumbnail for a row and re-decode it from disk.
+    void refreshThumbnail(const QModelIndex &index);
     void setCacheMaxSize(int n);
     void setThumbnailSize(ThumbnailCache::Size size);
 

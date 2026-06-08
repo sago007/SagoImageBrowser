@@ -7,6 +7,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
+    git \
+    ca-certificates \
     pkg-config \
     qt6-base-dev \
     qt6-tools-dev \
@@ -14,7 +16,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libqt6core6 \
     libqt6gui6 \
     libqt6widgets6 \
-    libexiv2-dev \
+    zlib1g-dev \
+    libexpat1-dev \
+    libbrotli-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /staging/sago_image_browser

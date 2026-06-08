@@ -171,6 +171,11 @@ void ImageViewWidget::clearCache()
     m_neighborPaths.clear();
 }
 
+void ImageViewWidget::invalidateCache(const QByteArray &path)
+{
+    m_cache.remove(path);
+}
+
 void ImageViewWidget::setBackgroundColor(const QString &color)
 {
     m_backgroundColor = color;

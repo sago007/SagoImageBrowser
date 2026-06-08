@@ -50,6 +50,7 @@ private:
     void showImageContextMenu(const QPoint &pos);
     void moveImageToTrash(const QByteArray &path);
     void moveCurrentImageToTrash();
+    void rotateImage(const QModelIndex &index, bool clockwise);
     void onPathEntered();
     void updatePathField(const QByteArray &path);
     QList<QByteArray> computeNeighborPaths(const QModelIndex &index) const;

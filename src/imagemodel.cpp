@@ -226,6 +226,23 @@ void ImageModel::requestThumbnails(int firstRow, int lastRow)
             queueRow(row);
 }
 
+void ImageModel::refreshThumbnail(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    const int row = index.row();
+    if (row < 0 || row >= m_items.size() || m_items[row].isFolder)
+        return;
+
+    // The on-disk thumbnail cache is keyed by source mtime, so it invalidates
+    // itself once the file is rewritten. Drop the in-memory copy and re-decode.
+    m_items[row].thumbnail = m_placeholder;
+    m_items[row].loaded = false;
+    emit dataChanged(index, index, {Qt::DecorationRole});
+    queueRow(row);
+}
+
 void ImageModel::queueRow(int row)
 {
     if (m_pendingRows.contains(row))

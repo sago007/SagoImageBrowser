@@ -640,6 +640,9 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
     QAction *copyFilenameAction = menu.addAction(tr("Copy filename"));
     QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
     menu.addSeparator();
+    QAction *rotateLeftAction = menu.addAction(tr("Rotate Left"));
+    QAction *rotateRightAction = menu.addAction(tr("Rotate Right"));
+    menu.addSeparator();
     QAction *editDescriptionAction = menu.addAction(tr("Edit description"));
     QAction *moveToTrashAction = menu.addAction(tr("Move to trash"));
     moveToTrashAction->setShortcut(
@@ -650,10 +653,46 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
         QGuiApplication::clipboard()->setText(filenameFromPath(path));
     } else if (chosen == copyFullPathAction) {
         QGuiApplication::clipboard()->setText(displayPath(path));
+    } else if (chosen == rotateLeftAction) {
+        rotateImage(index, false);
+    } else if (chosen == rotateRightAction) {
+        rotateImage(index, true);
     } else if (chosen == editDescriptionAction) {
         onEditCaption();
     } else if (chosen == moveToTrashAction) {
         moveImageToTrash(path);
+    }
+}
+
+void MainWindow::rotateImage(const QModelIndex &index, bool clockwise)
+{
+    if (!index.isValid() || m_imageModel->isFolder(index))
+        return;
+
+    const QByteArray path = m_imageModel->filePath(index);
+
+    if (::access(path.constData(), W_OK) != 0) {
+        QMessageBox::warning(this, tr("Cannot Rotate Image"),
+            tr("The file is write-protected and cannot be rotated.\n\n%1")
+                .arg(displayPath(path)));
+        return;
+    }
+
+    if (!ExifReader::rotate(path, clockwise)) {
+        QMessageBox::warning(this, tr("Cannot Rotate Image"),
+            tr("The image orientation could not be changed. The format may not "
+               "support EXIF orientation.\n\n%1")
+                .arg(displayPath(path)));
+        return;
+    }
+
+    m_imageModel->refreshThumbnail(index);
+    showPreview(index);
+
+    if (m_imageView->currentPath() == path) {
+        m_imageView->invalidateCache(path);
+        m_imageView->setImage(path);
+        m_imageView->setExifData(ExifReader::read(path));
     }
 }
 

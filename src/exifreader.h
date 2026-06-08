@@ -34,4 +34,9 @@ ExifData read(const QByteArray &path);
 bool saveCaption(const QByteArray &path,
                  const QString    &caption,
                  const ExifData   &oldData);
+
+// Rotate the image 90 degrees by updating the Exif.Image.Orientation tag only
+// (lossless — pixel data is left untouched). clockwise=true rotates right.
+// Returns true on success.
+bool rotate(const QByteArray &path, bool clockwise);
 } // namespace ExifReader

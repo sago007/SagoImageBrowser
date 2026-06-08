@@ -45,6 +45,8 @@ public:
     void prefetchImage(const QByteArray &path);
     void setNeighborPaths(const QList<QByteArray> &paths);
     void clearCache();
+    // Drop any cached pixmap for path so it is re-decoded from disk next time.
+    void invalidateCache(const QByteArray &path);
 
     void setExifData(const ExifData &data);
     void toggleExifOverlay();

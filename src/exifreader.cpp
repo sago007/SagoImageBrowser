@@ -34,6 +34,39 @@ static void addField(QList<QPair<QString, QString>> &result, const char *label, 
         result.append({QString::fromLatin1(label), value});
 }
 
+// EXIF orientation values run 1-8 and may encode mirroring. A 90-degree
+// rotation maps each value to another; the tables below cover all eight so
+// mirrored images stay correct. Unknown values are treated as 1 (normal).
+static int orientationRotatedClockwise(int orientation)
+{
+    switch (orientation) {
+    case 1: return 6;
+    case 2: return 7;
+    case 3: return 8;
+    case 4: return 5;
+    case 5: return 2;
+    case 6: return 3;
+    case 7: return 4;
+    case 8: return 1;
+    default: return 6;
+    }
+}
+
+static int orientationRotatedCounterClockwise(int orientation)
+{
+    switch (orientation) {
+    case 1: return 8;
+    case 2: return 5;
+    case 3: return 6;
+    case 4: return 7;
+    case 5: return 4;
+    case 6: return 1;
+    case 7: return 2;
+    case 8: return 3;
+    default: return 8;
+    }
+}
+
 bool ExifData::isEmpty() const
 {
     return captionAbstract.isEmpty() && description.isEmpty()
@@ -165,6 +198,30 @@ bool ExifReader::saveCaption(const QByteArray &path,
         if (oldData.captionAbstract == oldData.description) {
             image->exifData()["Exif.Image.ImageDescription"] = caption.toStdString();
         }
+
+        image->writeMetadata();
+        return true;
+    } catch (const Exiv2::Error &) {
+        return false;
+    }
+}
+
+bool ExifReader::rotate(const QByteArray &path, bool clockwise)
+{
+    try {
+        std::unique_ptr<Exiv2::Image> image =
+            Exiv2::ImageFactory::open(path.toStdString());
+        image->readMetadata();
+        Exiv2::ExifData &exif = image->exifData();
+
+        int current = 1; // EXIF default when the tag is absent
+        auto it = exif.findKey(Exiv2::ExifKey("Exif.Image.Orientation"));
+        if (it != exif.end())
+            current = static_cast<int>(it->toInt64());
+
+        const int updated = clockwise ? orientationRotatedClockwise(current)
+                                      : orientationRotatedCounterClockwise(current);
+        exif["Exif.Image.Orientation"] = static_cast<uint16_t>(updated);
 
         image->writeMetadata();
         return true;
