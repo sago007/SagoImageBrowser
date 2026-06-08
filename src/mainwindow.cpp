@@ -129,6 +129,7 @@ void MainWindow::setupUi()
 
     // Single image view
     m_imageView = new ImageViewWidget;
+    m_imageView->setContextMenuPolicy(Qt::CustomContextMenu);
 
     // Path bar: editable absolute path with ajax-style folder completion and a Go button
     m_pathEdit = new QLineEdit;
@@ -403,6 +404,9 @@ void MainWindow::setupConnections()
     connect(m_listView, &QListView::customContextMenuRequested,
             this, &MainWindow::showImageContextMenu);
 
+    connect(m_imageView, &ImageViewWidget::customContextMenuRequested,
+            this, &MainWindow::showImageViewContextMenu);
+
     connect(m_imageView, &ImageViewWidget::closeRequested,
             this, &MainWindow::leaveSingleImageMode);
     connect(m_imageView, &ImageViewWidget::editCaptionRequested,
@@ -635,7 +639,21 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
     showPreview(index);
 
     const QByteArray path = m_imageModel->filePath(index);
+    executeContextMenu(m_listView->viewport()->mapToGlobal(pos), path, index);
+}
 
+void MainWindow::showImageViewContextMenu(const QPoint &pos)
+{
+    const QByteArray path = m_imageView->currentPath();
+    if (path.isEmpty())
+        return;
+
+    const QModelIndex index = m_listView->currentIndex();
+    executeContextMenu(m_imageView->mapToGlobal(pos), path, index);
+}
+
+void MainWindow::executeContextMenu(const QPoint &globalPos, const QByteArray &path, const QModelIndex &index)
+{
     QMenu menu(this);
     QAction *copyFilenameAction = menu.addAction(tr("Copy filename"));
     QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
@@ -648,7 +666,7 @@ void MainWindow::showImageContextMenu(const QPoint &pos)
     moveToTrashAction->setShortcut(
         ShortcutManager::instance().shortcut(ShortcutManager::MoveToTrash));
 
-    QAction *chosen = menu.exec(m_listView->viewport()->mapToGlobal(pos));
+    QAction *chosen = menu.exec(globalPos);
     if (chosen == copyFilenameAction) {
         QGuiApplication::clipboard()->setText(filenameFromPath(path));
     } else if (chosen == copyFullPathAction) {

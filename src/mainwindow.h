@@ -48,6 +48,8 @@ private:
     void leaveSingleImageMode();
     void onEditCaption();
     void showImageContextMenu(const QPoint &pos);
+    void showImageViewContextMenu(const QPoint &pos);
+    void executeContextMenu(const QPoint &globalPos, const QByteArray &path, const QModelIndex &index);
     void moveImageToTrash(const QByteArray &path);
     void moveCurrentImageToTrash();
     void rotateImage(const QModelIndex &index, bool clockwise);
