@@ -27,6 +27,8 @@
 #include <QAction>
 #include <QSettings>
 #include <QTableWidget>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QPlainTextEdit>
@@ -449,6 +451,18 @@ void MainWindow::setupConnections()
     // Filter them here so PrevFolder/NextFolder shortcuts work while a view has focus.
     m_listView->installEventFilter(this);
     m_treeView->installEventFilter(this);
+
+    connect(m_exifTable, &QTableWidget::cellClicked, this, [this](int row, int column) {
+        if (column == 1) {
+            QTableWidgetItem *fieldItem = m_exifTable->item(row, 0);
+            if (fieldItem && fieldItem->text() == "OpenStreetMap") {
+                QTableWidgetItem *valueItem = m_exifTable->item(row, 1);
+                if (valueItem && !valueItem->text().isEmpty()) {
+                    QDesktopServices::openUrl(QUrl(valueItem->text()));
+                }
+            }
+        }
+    });
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
@@ -542,7 +556,15 @@ void MainWindow::updateExifInfo(const QByteArray &path)
     m_exifTable->setRowCount(fields.size());
     for (int i = 0; i < fields.size(); ++i) {
         m_exifTable->setItem(i, 0, new QTableWidgetItem(fields[i].first));
-        m_exifTable->setItem(i, 1, new QTableWidgetItem(fields[i].second));
+        auto *item = new QTableWidgetItem(fields[i].second);
+        if (fields[i].first == "OpenStreetMap") {
+            item->setForeground(Qt::blue);
+            QFont font = item->font();
+            font.setUnderline(true);
+            item->setFont(font);
+            item->setToolTip(tr("Click to open in browser"));
+        }
+        m_exifTable->setItem(i, 1, item);
     }
     m_exifTable->resizeColumnToContents(0);
 }

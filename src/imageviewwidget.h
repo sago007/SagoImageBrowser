@@ -94,4 +94,7 @@ private:
 
     // Help overlay
     bool m_showHelpOverlay = false;
+
+    // Clickable link areas
+    QRect m_osmLinkRect;
 };

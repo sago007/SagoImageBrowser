@@ -3,6 +3,8 @@
 
 #include <QPainter>
 #include <QMouseEvent>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QFile>
 #include <QImageReader>
 #include <QPalette>
@@ -65,6 +67,7 @@ ImageViewWidget::ImageViewWidget(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     setAutoFillBackground(true);
     setBackgroundColor("black");
+    setMouseTracking(true);
 }
 
 QPixmap ImageViewWidget::loadImageFromDisk(const QByteArray &path)
@@ -244,8 +247,18 @@ void ImageViewWidget::paintEvent(QPaintEvent *)
             painter.drawRoundedRect(boxX, boxY, boxW, boxH, 8, 8);
 
             painter.setPen(Qt::white);
+            m_osmLinkRect = QRect();
             for (int i = 0; i < fields.size(); ++i) {
                 const QString line = fields[i].first + QLatin1String(": ") + fields[i].second;
+                if (fields[i].first == "OpenStreetMap") {
+                    painter.setPen(Qt::cyan);
+                    m_osmLinkRect = QRect(boxX + padding,
+                                          boxY + padding + i * lineH,
+                                          fm.horizontalAdvance(line),
+                                          lineH);
+                } else {
+                    painter.setPen(Qt::white);
+                }
                 painter.drawText(boxX + padding,
                                  boxY + padding + fm.ascent() + i * lineH,
                                  line);
@@ -541,6 +554,11 @@ void ImageViewWidget::zoomFitToScreen()
 void ImageViewWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
+        if (m_showExifOverlay && m_osmLinkRect.contains(event->pos())) {
+            QDesktopServices::openUrl(QUrl(m_exifData.osmLink));
+            event->accept();
+            return;
+        }
         m_dragging = true;
         m_dragStart = event->pos();
         m_offsetAtDragStart = m_offset;
@@ -555,6 +573,12 @@ void ImageViewWidget::mouseMoveEvent(QMouseEvent *event)
         m_offset = m_offsetAtDragStart + (event->pos() - m_dragStart);
         update();
         event->accept();
+    } else {
+        if (m_showExifOverlay && m_osmLinkRect.contains(event->pos())) {
+            setCursor(Qt::PointingHandCursor);
+        } else {
+            setCursor(Qt::ArrowCursor);
+        }
     }
 }
 
