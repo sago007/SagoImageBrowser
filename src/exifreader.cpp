@@ -184,20 +184,20 @@ ExifData ExifReader::read(const QByteArray &path)
         QString latStr = findTag(exif, "Exif.GPSInfo.GPSLatitude");
         QString latRef = findTag(exif, "Exif.GPSInfo.GPSLatitudeRef");
         if (!latStr.isEmpty() && !latRef.isEmpty()) {
-            data.latitude = latStr + u" " + latRef;
+            data.latitude = latStr + " " + latRef;
         }
 
         QString lonStr = findTag(exif, "Exif.GPSInfo.GPSLongitude");
         QString lonRef = findTag(exif, "Exif.GPSInfo.GPSLongitudeRef");
         if (!lonStr.isEmpty() && !lonRef.isEmpty()) {
-            data.longitude = lonStr + u" " + lonRef;
+            data.longitude = lonStr + " " + lonRef;
         }
 
         if (!data.latitude.isEmpty() && !data.longitude.isEmpty()) {
             double lat = parseGpsCoordinate(exif, "Exif.GPSInfo.GPSLatitude");
-            if (latRef == u"S") lat = -lat;
+            if (latRef == "S") lat = -lat;
             double lon = parseGpsCoordinate(exif, "Exif.GPSInfo.GPSLongitude");
-            if (lonRef == u"W") lon = -lon;
+            if (lonRef == "W") lon = -lon;
             data.osmLink = QString::fromLatin1("https://www.openstreetmap.org/?mlat=%1&mlon=%2#map=16/%1/%2")
                                .arg(lat, 0, 'f', 6).arg(lon, 0, 'f', 6);
         }

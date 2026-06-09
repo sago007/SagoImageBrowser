@@ -680,9 +680,19 @@ void MainWindow::executeContextMenu(const QPoint &globalPos, const QByteArray &p
     QAction *copyFilenameAction = menu.addAction(tr("Copy filename"));
     QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
     menu.addSeparator();
-    QAction *rotateLeftAction = menu.addAction(tr("Rotate Left"));
-    QAction *rotateRightAction = menu.addAction(tr("Rotate Right"));
-    menu.addSeparator();
+
+    QFileInfo info(QFile::decodeName(path));
+    QString suffix = info.suffix().toLower();
+    bool isJpg = (suffix == "jpg" || suffix == "jpeg");
+
+    QAction *rotateLeftAction = nullptr;
+    QAction *rotateRightAction = nullptr;
+    if (isJpg) {
+        rotateLeftAction = menu.addAction(tr("Rotate Left"));
+        rotateRightAction = menu.addAction(tr("Rotate Right"));
+        menu.addSeparator();
+    }
+
     QAction *editDescriptionAction = menu.addAction(tr("Edit description"));
     QAction *moveToTrashAction = menu.addAction(tr("Move to trash"));
     moveToTrashAction->setShortcut(
@@ -693,9 +703,9 @@ void MainWindow::executeContextMenu(const QPoint &globalPos, const QByteArray &p
         QGuiApplication::clipboard()->setText(filenameFromPath(path));
     } else if (chosen == copyFullPathAction) {
         QGuiApplication::clipboard()->setText(displayPath(path));
-    } else if (chosen == rotateLeftAction) {
+    } else if (rotateLeftAction && chosen == rotateLeftAction) {
         rotateImage(index, false);
-    } else if (chosen == rotateRightAction) {
+    } else if (rotateRightAction && chosen == rotateRightAction) {
         rotateImage(index, true);
     } else if (chosen == editDescriptionAction) {
         onEditCaption();
