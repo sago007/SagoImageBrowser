@@ -34,6 +34,20 @@ static void addField(QList<QPair<QString, QString>> &result, const char *label, 
         result.append({QString::fromLatin1(label), value});
 }
 
+static double parseGpsCoordinate(const Exiv2::ExifData &exif, const std::string &key)
+{
+    try {
+        Exiv2::ExifData::const_iterator it = exif.findKey(Exiv2::ExifKey(key));
+        if (it != exif.end() && it->count() >= 3) {
+            double d = it->toRational(0).first / static_cast<double>(it->toRational(0).second);
+            double m = it->toRational(1).first / static_cast<double>(it->toRational(1).second);
+            double s = it->toRational(2).first / static_cast<double>(it->toRational(2).second);
+            return d + m / 60.0 + s / 3600.0;
+        }
+    } catch (...) {}
+    return 0.0;
+}
+
 // EXIF orientation values run 1-8 and may encode mirroring. A 90-degree
 // rotation maps each value to another; the tables below cover all eight so
 // mirrored images stay correct. Unknown values are treated as 1 (normal).
@@ -73,7 +87,9 @@ bool ExifData::isEmpty() const
         && dateTime.isEmpty() && make.isEmpty() && model.isEmpty()
         && exposureTime.isEmpty() && fNumber.isEmpty() && iso.isEmpty()
         && focalLength.isEmpty() && flash.isEmpty()
-        && filename.isEmpty() && dimensions.isEmpty() && fileSize.isEmpty();
+        && filename.isEmpty() && dimensions.isEmpty() && fileSize.isEmpty()
+        && orientation.isEmpty() && latitude.isEmpty() && longitude.isEmpty()
+        && osmLink.isEmpty();
 }
 
 QList<QPair<QString, QString>> ExifData::toList() const
@@ -92,6 +108,10 @@ QList<QPair<QString, QString>> ExifData::toList() const
     addField(result, "Filename",     filename);
     addField(result, "Dimensions",   dimensions);
     addField(result, "File Size",    fileSize);
+    addField(result, "Orientation",  orientation);
+    addField(result, "Latitude",     latitude);
+    addField(result, "Longitude",    longitude);
+    addField(result, "OpenStreetMap", osmLink);
     return result;
 }
 
@@ -158,6 +178,29 @@ ExifData ExifReader::read(const QByteArray &path)
         data.focalLength  = findTag(exif, "Exif.Photo.FocalLength");
         data.flash        = findTag(exif, "Exif.Photo.Flash");
         data.description  = findTag(exif, "Exif.Image.ImageDescription");
+        data.orientation  = findTag(exif, "Exif.Image.Orientation");
+
+        // GPS
+        QString latStr = findTag(exif, "Exif.GPSInfo.GPSLatitude");
+        QString latRef = findTag(exif, "Exif.GPSInfo.GPSLatitudeRef");
+        if (!latStr.isEmpty() && !latRef.isEmpty()) {
+            data.latitude = latStr + u" " + latRef;
+        }
+
+        QString lonStr = findTag(exif, "Exif.GPSInfo.GPSLongitude");
+        QString lonRef = findTag(exif, "Exif.GPSInfo.GPSLongitudeRef");
+        if (!lonStr.isEmpty() && !lonRef.isEmpty()) {
+            data.longitude = lonStr + u" " + lonRef;
+        }
+
+        if (!data.latitude.isEmpty() && !data.longitude.isEmpty()) {
+            double lat = parseGpsCoordinate(exif, "Exif.GPSInfo.GPSLatitude");
+            if (latRef == u"S") lat = -lat;
+            double lon = parseGpsCoordinate(exif, "Exif.GPSInfo.GPSLongitude");
+            if (lonRef == u"W") lon = -lon;
+            data.osmLink = QString::fromLatin1("https://www.openstreetmap.org/?mlat=%1&mlon=%2#map=16/%1/%2")
+                               .arg(lat, 0, 'f', 6).arg(lon, 0, 'f', 6);
+        }
 
         // IPTC Caption-Abstract
         const Exiv2::IptcData &iptc = image->iptcData();

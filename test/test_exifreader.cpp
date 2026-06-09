@@ -19,15 +19,31 @@ int main(int argc, char *argv[]) {
 
     // Test ExifData::toList()
     data.fileSize = "1.2 MiB";
+    data.orientation = "1 (top, left)";
+    data.latitude = "55deg 40' 32.12\" N";
+    data.longitude = "12deg 34' 11.23\" E";
+    data.osmLink = "https://www.openstreetmap.org/?mlat=55.675589&mlon=12.569786#map=16/55.675589/12.569786";
     auto list = data.toList();
     bool foundFilename = false;
     bool foundSize = false;
+    bool foundOrientation = false;
+    bool foundLat = false;
+    bool foundLon = false;
+    bool foundOsm = false;
     for (const auto &pair : list) {
         if (pair.first == "Filename" && pair.second == "test.jpg") foundFilename = true;
         if (pair.first == "File Size" && pair.second == "1.2 MiB") foundSize = true;
+        if (pair.first == "Orientation" && pair.second == "1 (top, left)") foundOrientation = true;
+        if (pair.first == "Latitude" && pair.second == "55deg 40' 32.12\" N") foundLat = true;
+        if (pair.first == "Longitude" && pair.second == "12deg 34' 11.23\" E") foundLon = true;
+        if (pair.first == "OpenStreetMap" && pair.second == "https://www.openstreetmap.org/?mlat=55.675589&mlon=12.569786#map=16/55.675589/12.569786") foundOsm = true;
     }
     assert(foundFilename);
     assert(foundSize);
+    assert(foundOrientation);
+    assert(foundLat);
+    assert(foundLon);
+    assert(foundOsm);
     qDebug() << "ExifData::toList() passed.";
 
     qDebug() << "All ExifReader tests passed!";

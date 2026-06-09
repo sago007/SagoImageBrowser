@@ -19,6 +19,10 @@ struct ExifData {
     QString filename;
     QString dimensions;
     QString fileSize;
+    QString orientation;
+    QString latitude;
+    QString longitude;
+    QString osmLink;
 
     bool isEmpty() const;
     QList<QPair<QString, QString>> toList() const;
