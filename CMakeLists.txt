@@ -8,6 +8,8 @@ include(GNUInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 include(FetchContent)
+# Build exiv2lib as a static library so it is linked into the executable
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(EXIV2_BUILD_SAMPLES OFF CACHE INTERNAL "")
 set(EXIV2_BUILD_EXIV2_COMMAND OFF CACHE INTERNAL "")
 set(EXIV2_BUILD_UNIT_TESTS OFF CACHE INTERNAL "")
