@@ -7,6 +7,7 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setDesktopFileName("sago-image-browser");
     app.setWindowIcon(QIcon(":/icons/sago_image_browser.svg"));
 
     QTranslator translator;
