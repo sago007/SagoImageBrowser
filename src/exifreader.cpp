@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QImageReader>
+#include <QCoreApplication>
 
 #include <exiv2/exiv2.hpp>
 
@@ -31,7 +32,7 @@ static QString findTag(const Exiv2::ExifData &exif, const std::string &key)
 static void addField(QList<QPair<QString, QString>> &result, const char *label, const QString &value)
 {
     if (!value.isEmpty())
-        result.append({QString::fromLatin1(label), value});
+        result.append({QCoreApplication::translate("ExifReader", label), value});
 }
 
 static double parseGpsCoordinate(const Exiv2::ExifData &exif, const std::string &key)
@@ -95,23 +96,23 @@ bool ExifData::isEmpty() const
 QList<QPair<QString, QString>> ExifData::toList() const
 {
     QList<QPair<QString, QString>> result;
-    addField(result, "Caption",      captionAbstract);
-    addField(result, "Description",  description);
-    addField(result, "Date/Time",    dateTime);
-    addField(result, "Camera Make",  make);
-    addField(result, "Camera Model", model);
-    addField(result, "Exposure",     exposureTime);
-    addField(result, "Aperture",     fNumber);
-    addField(result, "ISO",          iso);
-    addField(result, "Focal Length", focalLength);
-    addField(result, "Flash",        flash);
-    addField(result, "Filename",     filename);
-    addField(result, "Dimensions",   dimensions);
-    addField(result, "File Size",    fileSize);
-    addField(result, "Orientation",  orientation);
-    addField(result, "Latitude",     latitude);
-    addField(result, "Longitude",    longitude);
-    addField(result, "OpenStreetMap", osmLink);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Caption"),      captionAbstract);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Description"),  description);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Date/Time"),    dateTime);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Camera Make"),  make);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Camera Model"), model);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Exposure"),     exposureTime);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Aperture"),     fNumber);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "ISO"),          iso);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Focal Length"), focalLength);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Flash"),        flash);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Filename"),     filename);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Dimensions"),   dimensions);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "File Size"),    fileSize);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Orientation"),  orientation);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Latitude"),     latitude);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "Longitude"),    longitude);
+    addField(result, QT_TRANSLATE_NOOP("ExifReader", "OpenStreetMap"), osmLink);
     return result;
 }
 

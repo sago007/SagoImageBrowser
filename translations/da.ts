@@ -2,6 +2,77 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="da_DK">
 <context>
+    <name>ExifReader</name>
+    <message>
+        <source>Caption</source>
+        <translation>Billedtekst</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>Beskrivelse</translation>
+    </message>
+    <message>
+        <source>Date/Time</source>
+        <translation>Dato/tid</translation>
+    </message>
+    <message>
+        <source>Camera Make</source>
+        <translation>Kameraproducent</translation>
+    </message>
+    <message>
+        <source>Camera Model</source>
+        <translation>Kameramodel</translation>
+    </message>
+    <message>
+        <source>Exposure</source>
+        <translation>Eksponering</translation>
+    </message>
+    <message>
+        <source>Aperture</source>
+        <translation>Blænde</translation>
+    </message>
+    <message>
+        <source>ISO</source>
+        <translation>ISO</translation>
+    </message>
+    <message>
+        <source>Focal Length</source>
+        <translation>Brændvidde</translation>
+    </message>
+    <message>
+        <source>Flash</source>
+        <translation>Blitz</translation>
+    </message>
+    <message>
+        <source>Filename</source>
+        <translation>Filnavn</translation>
+    </message>
+    <message>
+        <source>Dimensions</source>
+        <translation>Dimensioner</translation>
+    </message>
+    <message>
+        <source>File Size</source>
+        <translation>Filstørrelse</translation>
+    </message>
+    <message>
+        <source>Orientation</source>
+        <translation>Orientering</translation>
+    </message>
+    <message>
+        <source>Latitude</source>
+        <translation>Breddegrad</translation>
+    </message>
+    <message>
+        <source>Longitude</source>
+        <translation>Længdegrad</translation>
+    </message>
+    <message>
+        <source>OpenStreetMap</source>
+        <translation>OpenStreetMap</translation>
+    </message>
+</context>
+<context>
     <name>ImageViewWidget</name>
     <message>
         <source>Close viewer</source>
