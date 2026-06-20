@@ -2,6 +2,25 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="da_DK">
 <context>
+    <name>ImageViewWidget</name>
+    <message>
+        <source>Close viewer</source>
+        <translation>Luk fremviser</translation>
+    </message>
+    <message>
+        <source>Next / previous image</source>
+        <translation>Næste / forrige billede</translation>
+    </message>
+    <message>
+        <source>Pan image</source>
+        <translation>Panorer billede</translation>
+    </message>
+    <message>
+        <source>Zoom in / out</source>
+        <translation>Zoom ind / ud</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <source>Go</source>
@@ -69,7 +88,7 @@
     </message>
     <message>
         <source>The file is write-protected. Cannot save caption.</source>
-        <translation>Filen er skrivebeskyttet. Kan ikke gemme billedtekst.</translation>
+        <translation type="vanished">Filen er skrivebeskyttet. Kan ikke gemme billedtekst.</translation>
     </message>
     <message>
         <source>Edit Caption</source>
@@ -78,6 +97,82 @@
     <message>
         <source>Caption-Abstract:</source>
         <translation>Billedtekst:</translation>
+    </message>
+    <message>
+        <source>Click to open in browser</source>
+        <translation>Klik for at åbne i browseren</translation>
+    </message>
+    <message>
+        <source>The file is write-protected and cannot be edited.
+
+%1</source>
+        <translation>Filen er skrivebeskyttet og kan ikke redigeres.
+
+%1</translation>
+    </message>
+    <message>
+        <source>Copy filename</source>
+        <translation>Kopier filnavn</translation>
+    </message>
+    <message>
+        <source>Copy full path</source>
+        <translation>Kopier fuld sti</translation>
+    </message>
+    <message>
+        <source>Rotate Left</source>
+        <translation>Roter mod venstre</translation>
+    </message>
+    <message>
+        <source>Rotate Right</source>
+        <translation>Roter mod højre</translation>
+    </message>
+    <message>
+        <source>Edit description</source>
+        <translation>Rediger beskrivelse</translation>
+    </message>
+    <message>
+        <source>Move to trash</source>
+        <translation>Flyt til papirkurv</translation>
+    </message>
+    <message>
+        <source>Cannot Rotate Image</source>
+        <translation>Kan ikke rotere billede</translation>
+    </message>
+    <message>
+        <source>The file is write-protected and cannot be rotated.
+
+%1</source>
+        <translation>Filen er skrivebeskyttet og kan ikke roteres.
+
+%1</translation>
+    </message>
+    <message>
+        <source>The image orientation could not be changed. The format may not support EXIF orientation.
+
+%1</source>
+        <translation>Billedets orientering kunne ikke ændres. Formatet understøtter muligvis ikke EXIF-orientering.
+
+%1</translation>
+    </message>
+    <message>
+        <source>Move to Trash</source>
+        <translation>Flyt til papirkurv</translation>
+    </message>
+    <message>
+        <source>Move &quot;%1&quot; to the trash?</source>
+        <translation>Flyt &quot;%1&quot; til papirkurven?</translation>
+    </message>
+    <message>
+        <source>Cannot Move to Trash</source>
+        <translation>Kan ikke flytte til papirkurv</translation>
+    </message>
+    <message>
+        <source>The file could not be moved to the trash.
+
+%1</source>
+        <translation>Filen kunne ikke flyttes til papirkurven.
+
+%1</translation>
     </message>
 </context>
 <context>
@@ -168,25 +263,6 @@
     </message>
 </context>
 <context>
-    <name>ImageViewWidget</name>
-    <message>
-        <source>Close viewer</source>
-        <translation>Luk fremviser</translation>
-    </message>
-    <message>
-        <source>Next / previous image</source>
-        <translation>Næste / forrige billede</translation>
-    </message>
-    <message>
-        <source>Pan image</source>
-        <translation>Panorer billede</translation>
-    </message>
-    <message>
-        <source>Zoom in / out</source>
-        <translation>Zoom ind / ud</translation>
-    </message>
-</context>
-<context>
     <name>ShortcutManager</name>
     <message>
         <source>Show/hide keyboard shortcuts</source>
@@ -263,6 +339,10 @@
     <message>
         <source>Next folder</source>
         <translation>Næste mappe</translation>
+    </message>
+    <message>
+        <source>Move image to trash</source>
+        <translation>Flyt billede til papirkurv</translation>
     </message>
 </context>
 </TS>
