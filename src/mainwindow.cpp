@@ -394,6 +394,7 @@ void MainWindow::setupConnections()
                 QString rootPath = current->data(Qt::UserRole).toString();
                 m_dirModel->setRootPath(rootPath);
                 m_treeView->setRootIndex(m_dirModel->rootIndex());
+                navigateToFolder(QFile::encodeName(rootPath));
             });
 
     connect(m_treeView, &QTreeView::clicked, this,
