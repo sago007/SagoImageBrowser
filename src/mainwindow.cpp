@@ -116,15 +116,6 @@ void MainWindow::setupUi()
     m_rootList = new QListWidget;
     m_rootList->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    auto addRootItem = [this](const QString &label, const QString &path) {
-        QListWidgetItem *item = new QListWidgetItem(label, m_rootList);
-        item->setData(Qt::UserRole, path);
-    };
-    addRootItem(tr("Home"), QDir::homePath());
-    addRootItem(tr("Pictures"), QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
-    addRootItem(tr("File System"), QDir::rootPath());
-    m_rootList->setCurrentRow(0);
-
     m_treeView = new QTreeView;
     m_treeView->setModel(m_dirModel);
     m_treeView->setRootIndex(m_dirModel->rootIndex());
@@ -979,6 +970,14 @@ void MainWindow::loadPreferences()
     m_imageModel->setCacheMaxSize(m_folderCacheSizePreference);
     m_thumbnailCacheSizePreference = settings.value("thumbnailCacheSize", "normal").toString();
     m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
+    m_rootLabelsPreference = settings.value("rootLabels").toStringList();
+    m_rootPathsPreference = settings.value("rootPaths").toStringList();
+    if (m_rootLabelsPreference.isEmpty() || m_rootPathsPreference.isEmpty()) {
+        m_rootLabelsPreference = {tr("Home"), tr("Pictures"), tr("File System")};
+        m_rootPathsPreference = {QDir::homePath(), QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), QDir::rootPath()};
+    }
+    updateRootList();
+
     ShortcutManager::instance().load(settings);
     if (settings.contains("windowGeometry"))
         restoreGeometry(settings.value("windowGeometry").toByteArray());
@@ -993,6 +992,8 @@ void MainWindow::savePreferences()
     settings.setValue("lockDocking", m_lockDockingPreference);
     settings.setValue("folderCacheSize", m_folderCacheSizePreference);
     settings.setValue("thumbnailCacheSize", m_thumbnailCacheSizePreference);
+    settings.setValue("rootLabels", m_rootLabelsPreference);
+    settings.setValue("rootPaths", m_rootPathsPreference);
     ShortcutManager::instance().save(settings);
     settings.setValue("windowGeometry", saveGeometry());
     settings.setValue("windowState", saveState());
@@ -1005,6 +1006,8 @@ void MainWindow::onPreferencesTriggered()
     dialog.setLockDocking(m_lockDockingPreference);
     dialog.setCacheSize(m_folderCacheSizePreference);
     dialog.setThumbnailCacheSize(m_thumbnailCacheSizePreference);
+    dialog.setRootLabels(m_rootLabelsPreference);
+    dialog.setRootPaths(m_rootPathsPreference);
 
     // Populate shortcuts tab from current bindings
     {
@@ -1035,6 +1038,10 @@ void MainWindow::onPreferencesTriggered()
             m_imageModel->setThumbnailSize(thumbnailSizeFromString(m_thumbnailCacheSizePreference));
             loadVisibleThumbnails();
         }
+
+        m_rootLabelsPreference = dialog.getRootLabels();
+        m_rootPathsPreference = dialog.getRootPaths();
+        updateRootList();
 
         // Apply shortcut changes
         QMap<int, QKeySequence> scMap = dialog.getShortcuts();
@@ -1080,4 +1087,15 @@ void MainWindow::resetLayoutToDefault()
     m_rootDock->show();
     m_folderDock->show();
     m_previewDock->show();
+}
+
+void MainWindow::updateRootList()
+{
+    m_rootList->clear();
+    for (int i = 0; i < m_rootLabelsPreference.size() && i < m_rootPathsPreference.size(); ++i) {
+        QListWidgetItem *item = new QListWidgetItem(m_rootLabelsPreference[i], m_rootList);
+        item->setData(Qt::UserRole, m_rootPathsPreference[i]);
+    }
+    if (m_rootList->count() > 0)
+        m_rootList->setCurrentRow(0);
 }

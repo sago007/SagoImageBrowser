@@ -37,6 +37,7 @@ SOFTWARE.
 #include <QTableWidget>
 #include <QKeySequenceEdit>
 #include <QHeaderView>
+#include <QFileDialog>
 
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
@@ -50,6 +51,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent)
     QTabWidget *tabs = new QTabWidget(this);
     setupGeneralTab(tabs);
     setupShortcutsTab(tabs);
+    setupRootsTab(tabs);
     mainLayout->addWidget(tabs);
 
     QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -227,6 +229,48 @@ void PreferencesDialog::setupShortcutsTab(QTabWidget *tabs)
     tabs->addTab(page, tr("Shortcuts"));
 }
 
+void PreferencesDialog::setupRootsTab(QTabWidget *tabs)
+{
+    QWidget *page = new QWidget;
+    QVBoxLayout *pageLayout = new QVBoxLayout(page);
+
+    m_rootsTable = new QTableWidget(0, 2, page);
+    m_rootsTable->setHorizontalHeaderLabels({tr("Label"), tr("Path")});
+    m_rootsTable->horizontalHeader()->setStretchLastSection(true);
+    m_rootsTable->verticalHeader()->hide();
+    m_rootsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_rootsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    pageLayout->addWidget(m_rootsTable);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout;
+    QPushButton *addBtn = new QPushButton(tr("Add"));
+    QPushButton *removeBtn = new QPushButton(tr("Remove"));
+    btnLayout->addStretch();
+    btnLayout->addWidget(addBtn);
+    btnLayout->addWidget(removeBtn);
+    pageLayout->addLayout(btnLayout);
+
+    connect(addBtn, &QPushButton::clicked, this, [this]() {
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Select Root Directory"));
+        if (!dir.isEmpty()) {
+            int row = m_rootsTable->rowCount();
+            m_rootsTable->insertRow(row);
+            m_rootsTable->setItem(row, 0, new QTableWidgetItem(QFileInfo(dir).fileName()));
+            m_rootsTable->setItem(row, 1, new QTableWidgetItem(dir));
+        }
+    });
+
+    connect(removeBtn, &QPushButton::clicked, this, [this]() {
+        int row = m_rootsTable->currentRow();
+        if (row >= 0) {
+            m_rootsTable->removeRow(row);
+        }
+    });
+
+    tabs->addTab(page, tr("Roots"));
+}
+
 void PreferencesDialog::highlightConflicts()
 {
     // Group sequences by category, then detect conflicts within each category.
@@ -353,4 +397,44 @@ bool PreferencesDialog::getResetLayout() const
 void PreferencesDialog::setResetLayout(bool reset)
 {
     m_resetLayoutCheck->setChecked(reset);
+}
+
+QStringList PreferencesDialog::getRootLabels() const
+{
+    QStringList labels;
+    for (int i = 0; i < m_rootsTable->rowCount(); ++i) {
+        labels << m_rootsTable->item(i, 0)->text();
+    }
+    return labels;
+}
+
+void PreferencesDialog::setRootLabels(const QStringList &labels)
+{
+    if (m_rootsTable->rowCount() < labels.size())
+        m_rootsTable->setRowCount(labels.size());
+    for (int i = 0; i < labels.size(); ++i) {
+        if (!m_rootsTable->item(i, 0))
+            m_rootsTable->setItem(i, 0, new QTableWidgetItem);
+        m_rootsTable->item(i, 0)->setText(labels[i]);
+    }
+}
+
+QStringList PreferencesDialog::getRootPaths() const
+{
+    QStringList paths;
+    for (int i = 0; i < m_rootsTable->rowCount(); ++i) {
+        paths << m_rootsTable->item(i, 1)->text();
+    }
+    return paths;
+}
+
+void PreferencesDialog::setRootPaths(const QStringList &paths)
+{
+    if (m_rootsTable->rowCount() < paths.size())
+        m_rootsTable->setRowCount(paths.size());
+    for (int i = 0; i < paths.size(); ++i) {
+        if (!m_rootsTable->item(i, 1))
+            m_rootsTable->setItem(i, 1, new QTableWidgetItem);
+        m_rootsTable->item(i, 1)->setText(paths[i]);
+    }
 }

@@ -84,6 +84,7 @@ private:
     QByteArray siblingFolder(int delta) const;
     void navigateToPrevFolder();
     void navigateToNextFolder();
+    void updateRootList();
 
     void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -107,6 +108,8 @@ private:
     QString m_backgroundColorPreference = "black";
     int m_folderCacheSizePreference = 4;
     QString m_thumbnailCacheSizePreference = "normal";
+    QStringList m_rootLabelsPreference;
+    QStringList m_rootPathsPreference;
     QWidget *m_browserPage;
     ImageViewWidget *m_imageView;
     bool m_wasMaximized = false;

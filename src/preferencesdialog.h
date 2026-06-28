@@ -60,12 +60,19 @@ public:
     QMap<int, QKeySequence> getShortcuts() const;
     void setShortcuts(const QMap<int, QKeySequence> &map);
 
+    QStringList getRootLabels() const;
+    void setRootLabels(const QStringList &labels);
+
+    QStringList getRootPaths() const;
+    void setRootPaths(const QStringList &paths);
+
 signals:
     void resetLayoutRequested();
 
 private:
     void setupGeneralTab(QTabWidget *tabs);
     void setupShortcutsTab(QTabWidget *tabs);
+    void setupRootsTab(QTabWidget *tabs);
     void highlightConflicts();
 
     QComboBox *m_backgroundColorCombo;
@@ -74,5 +81,6 @@ private:
     QCheckBox *m_lockDockingCheck;
     QCheckBox *m_resetLayoutCheck;
     QTableWidget *m_shortcutsTable = nullptr;
+    QTableWidget *m_rootsTable = nullptr;
     QList<int> m_rowToAction;  // maps table row → ShortcutManager::Action
 };
