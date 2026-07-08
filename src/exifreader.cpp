@@ -32,6 +32,13 @@ SOFTWARE.
 
 #include <exiv2/exiv2.hpp>
 
+// exiv2 0.28 returns a std::unique_ptr (Image::UniquePtr); 0.27 uses Image::AutoPtr
+#if EXIV2_VERSION >= EXIV2_MAKE_VERSION(0,28,0)
+using Exiv2ImagePtr = Exiv2::Image::UniquePtr;
+#else
+using Exiv2ImagePtr = Exiv2::Image::AutoPtr;
+#endif
+
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -189,8 +196,7 @@ ExifData ExifReader::read(const QByteArray &path)
 
     // EXIF tags via exiv2
     try {
-        std::unique_ptr<Exiv2::Image> image =
-            Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
         image->readMetadata();
         const Exiv2::ExifData &exif = image->exifData();
 
@@ -246,8 +252,7 @@ bool ExifReader::saveCaption(const QByteArray &path,
                              const ExifData   &oldData)
 {
     try {
-        std::unique_ptr<Exiv2::Image> image =
-            Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
         image->readMetadata();
 
         // Erase all existing Caption-Abstract entries then add the new one
@@ -279,15 +284,18 @@ bool ExifReader::saveCaption(const QByteArray &path,
 bool ExifReader::rotate(const QByteArray &path, bool clockwise)
 {
     try {
-        std::unique_ptr<Exiv2::Image> image =
-            Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
         image->readMetadata();
         Exiv2::ExifData &exif = image->exifData();
 
         int current = 1; // EXIF default when the tag is absent
         auto it = exif.findKey(Exiv2::ExifKey("Exif.Image.Orientation"));
         if (it != exif.end())
+#if EXIV2_VERSION >= EXIV2_MAKE_VERSION(0,28,0)
             current = static_cast<int>(it->toInt64());
+#else
+            current = static_cast<int>(it->toLong());
+#endif
 
         const int updated = clockwise ? orientationRotatedClockwise(current)
                                       : orientationRotatedCounterClockwise(current);

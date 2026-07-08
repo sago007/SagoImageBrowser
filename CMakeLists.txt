@@ -7,23 +7,16 @@ set(CMAKE_AUTOMOC ON)
 include(GNUInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
-include(FetchContent)
-# Build exiv2lib as a static library so it is linked into the executable
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
-set(EXIV2_BUILD_SAMPLES OFF CACHE INTERNAL "")
-set(EXIV2_BUILD_EXIV2_COMMAND OFF CACHE INTERNAL "")
-set(EXIV2_BUILD_UNIT_TESTS OFF CACHE INTERNAL "")
-set(EXIV2_BUILD_DOC OFF CACHE INTERNAL "")
-set(EXIV2_ENABLE_INIH OFF CACHE INTERNAL "")
-FetchContent_Declare(
-    exiv2
-    GIT_REPOSITORY https://github.com/Exiv2/exiv2.git
-    GIT_TAG v0.28.8
-)
-FetchContent_MakeAvailable(exiv2)
 
-# Exiv2 0.28.8 generates this header in the build root but doesn't add it to include paths
-target_include_directories(exiv2lib INTERFACE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>)
+# Use the system-provided exiv2 (both 0.27 and 0.28 are supported)
+find_package(exiv2 REQUIRED CONFIG)
+
+# 0.28 exports Exiv2::exiv2lib; 0.27 configs may export the unnamespaced target
+if(TARGET Exiv2::exiv2lib)
+    set(EXIV2_TARGET Exiv2::exiv2lib)
+else()
+    set(EXIV2_TARGET exiv2lib)
+endif()
 
 qt_add_executable(SagoImageBrowser
     src/main.cpp
@@ -53,11 +46,11 @@ qt_add_executable(SagoImageBrowser
 set_source_files_properties(extra/icons/sago_image_browser.svg PROPERTIES QT_RESOURCE_ALIAS sago_image_browser.svg)
 qt_add_resources(SagoImageBrowser "icons" PREFIX "/icons" FILES extra/icons/sago_image_browser.svg)
 
-target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets exiv2lib)
+target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_TARGET})
 
 add_executable(test_exifreader test/test_exifreader.cpp src/exifreader.cpp)
 target_include_directories(test_exifreader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(test_exifreader PRIVATE Qt6::Widgets exiv2lib)
+target_link_libraries(test_exifreader PRIVATE Qt6::Widgets ${EXIV2_TARGET})
 
 qt_add_translations(SagoImageBrowser
     TS_FILES translations/da.ts

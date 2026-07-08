@@ -25,21 +25,20 @@ A Qt6-based image browser application for viewing and managing image collections
 - C++17 or later
 - CMake 3.21+
 - Qt6 (Widgets and LinguistTools components)
-- Git and a network connection — Exiv2 (v0.28.8) is fetched and statically linked
-  at configure time via CMake `FetchContent`
+- Exiv2 development files (0.27 or 0.28) installed on the system, e.g. `libexiv2-dev`
 
 ## Building
 
 ### Prerequisites
 
-Install Qt6 development files:
+Install the Qt6 and Exiv2 development files:
 
 ```bash
 # On Ubuntu/Debian
-sudo apt-get install qt6-base-dev qt6-tools-dev
+sudo apt-get install qt6-base-dev qt6-tools-dev libexiv2-dev
 
 # On macOS with Homebrew
-brew install qt6
+brew install qt6 exiv2
 ```
 
 ### Build Steps
