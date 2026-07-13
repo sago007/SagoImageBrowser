@@ -1,0 +1,9 @@
+FROM sago007/mxe_qt6
+
+RUN mkdir -p /staging/sago_image_browser
+
+COPY . /staging/sago_image_browser
+
+RUN cd /staging/sago_image_browser && rm -rf build && mkdir build && cd build && \
+i686-w64-mingw32.static-cmake .. && \
+make -j$(nproc)

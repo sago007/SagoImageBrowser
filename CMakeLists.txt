@@ -8,6 +8,8 @@ include(GNUInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 
+find_package(Iconv REQUIRED)
+
 # Use the system-provided exiv2 (both 0.27 and 0.28 are supported)
 find_package(exiv2 REQUIRED CONFIG)
 
