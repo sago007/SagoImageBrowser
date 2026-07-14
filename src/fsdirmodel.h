@@ -49,7 +49,7 @@ public:
     // and pass the result to QTreeView::setRootIndex() so the root node itself
     // is hidden and only its children are displayed as top-level items.
     void setRootPath(const QByteArray &nativePath);
-    void setRootPath(const QString &path);   // convenience: converts via QFile::encodeName
+    void setRootPath(const QString &path);   // convenience: converts via nativepath::nativeFromDisplay
 
     // Model index of the root-path node (the one whose *children* are shown
     // as top-level items when passed to QTreeView::setRootIndex).

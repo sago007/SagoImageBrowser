@@ -35,8 +35,8 @@ SOFTWARE.
 // when the parent directory actually changes, so per-keystroke cost is just
 // the QCompleter filter pass over an already-loaded list.
 //
-// Directory enumeration mirrors FsDirModel::listSubdirs (std::filesystem with
-// QFile::decodeName), so non-ASCII names that round-trip through the locale
+// Directory enumeration mirrors FsDirModel::listSubdirs (std::filesystem via
+// the nativepath helpers), so names the OS's Unicode encoding cannot represent
 // are listed correctly.
 class PathCompleterModel : public QAbstractListModel
 {

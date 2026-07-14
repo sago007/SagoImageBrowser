@@ -8,6 +8,9 @@ include(GNUInstallDirs)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools)
 
+# exiv2's exported target lists Iconv::Iconv in its link interface (notably on
+# the MXE/MinGW Windows build), so the imported target must exist before the
+# exiv2 config below is consumed — even though we never call iconv directly.
 find_package(Iconv REQUIRED)
 
 # Use the system-provided exiv2 (both 0.27 and 0.28 are supported)
@@ -40,6 +43,8 @@ qt_add_executable(SagoImageBrowser
     src/shortcutmanager.h
     src/exifreader.cpp
     src/exifreader.h
+    src/nativepath.cpp
+    src/nativepath.h
     src/pathcompletermodel.cpp
     src/pathcompletermodel.h
     src/thumbnaildelegate.cpp
@@ -50,7 +55,7 @@ qt_add_resources(SagoImageBrowser "icons" PREFIX "/icons" FILES extra/icons/sago
 
 target_link_libraries(SagoImageBrowser PRIVATE Qt6::Widgets ${EXIV2_TARGET})
 
-add_executable(test_exifreader test/test_exifreader.cpp src/exifreader.cpp)
+add_executable(test_exifreader test/test_exifreader.cpp src/exifreader.cpp src/nativepath.cpp)
 target_include_directories(test_exifreader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(test_exifreader PRIVATE Qt6::Widgets ${EXIV2_TARGET})
 

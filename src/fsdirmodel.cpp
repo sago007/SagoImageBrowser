@@ -24,6 +24,7 @@ SOFTWARE.
 */
 
 #include "fsdirmodel.h"
+#include "nativepath.h"
 
 #include <QFileIconProvider>
 
@@ -41,19 +42,19 @@ QList<FsDirModel::Node *> FsDirModel::listSubdirs(Node *parentNode)
 {
     QList<Node *> result;
     try {
-        std::vector<std::pair<std::string, std::string>> entries; // {nativePath, filename}
+        std::vector<std::pair<QByteArray, QByteArray>> entries; // {nativePath, filename}
 
         for (const fs::directory_entry &entry :
-             fs::directory_iterator(parentNode->nativePath.toStdString(),
+             fs::directory_iterator(nativepath::pathFromNative(parentNode->nativePath),
                                     fs::directory_options::skip_permission_denied))
         {
             std::error_code ec;
-            const std::string fname = entry.path().filename().native();
-            if (fname.empty() || fname[0] == '.')
+            const QByteArray fname = nativepath::nativeFromPath(entry.path().filename());
+            if (fname.isEmpty() || fname.at(0) == '.')
                 continue;
             if (!entry.is_directory(ec))
                 continue;
-            entries.push_back({entry.path().native(), fname});
+            entries.push_back({nativepath::nativeFromPath(entry.path()), fname});
         }
 
         std::sort(entries.begin(), entries.end(),
@@ -62,9 +63,8 @@ QList<FsDirModel::Node *> FsDirModel::listSubdirs(Node *parentNode)
         result.reserve(static_cast<qsizetype>(entries.size()));
         for (const auto &[npath, fname] : entries) {
             auto *child = new Node;
-            child->nativePath  = QByteArray::fromStdString(npath);
-            child->displayName = QString::fromLocal8Bit(fname.c_str(),
-                                                        static_cast<qsizetype>(fname.size()));
+            child->nativePath  = npath;
+            child->displayName = nativepath::displayFromNative(fname);
             child->parent      = parentNode;
             result.append(child);
         }
@@ -107,7 +107,7 @@ FsDirModel::~FsDirModel()
 
 void FsDirModel::setRootPath(const QString &path)
 {
-    setRootPath(QFile::encodeName(path));
+    setRootPath(nativepath::nativeFromDisplay(path));
 }
 
 void FsDirModel::setRootPath(const QByteArray &nativePath)
@@ -119,10 +119,11 @@ void FsDirModel::setRootPath(const QByteArray &nativePath)
         auto *node = new Node;
         node->nativePath  = nativePath;
         // Display name = last path component (empty for "/", use "/" in that case)
-        std::string fname = fs::path(nativePath.toStdString()).filename().native();
-        node->displayName = fname.empty()
-            ? QFile::decodeName(nativePath)
-            : QString::fromLocal8Bit(fname.c_str(), static_cast<qsizetype>(fname.size()));
+        const QByteArray fname =
+            nativepath::nativeFromPath(nativepath::pathFromNative(nativePath).filename());
+        node->displayName = fname.isEmpty()
+            ? nativepath::displayFromNative(nativePath)
+            : nativepath::displayFromNative(fname);
         node->parent      = &m_virtualRoot;
         m_virtualRoot.children.append(node);
     }
@@ -149,8 +150,9 @@ QModelIndex FsDirModel::indexForPath(const QByteArray &nativePath)
     if (nativePath.isEmpty() || m_virtualRoot.children.isEmpty())
         return {};
 
-    const fs::path target(nativePath.toStdString());
-    const fs::path root(m_virtualRoot.children.first()->nativePath.toStdString());
+    const fs::path target = nativepath::pathFromNative(nativePath);
+    const fs::path root =
+        nativepath::pathFromNative(m_virtualRoot.children.first()->nativePath);
 
     // Collect the ancestry chain from root down to target
     std::vector<fs::path> chain;
@@ -184,10 +186,10 @@ QModelIndex FsDirModel::indexForPath(const QByteArray &nativePath)
         }
 
         // Find the child whose nativePath matches step
-        const std::string stepStr = step.native();
+        const QByteArray stepBytes = nativepath::nativeFromPath(step);
         bool found = false;
         for (int i = 0; i < node->children.size(); ++i) {
-            if (node->children[i]->nativePath.toStdString() == stepStr) {
+            if (node->children[i]->nativePath == stepBytes) {
                 node = node->children[i];
                 idx  = createIndex(i, 0, node);
                 found = true;

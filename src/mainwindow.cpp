@@ -69,10 +69,9 @@ SOFTWARE.
 #include <QVBoxLayout>
 #include <iostream>
 
-#include <fcntl.h>
 #include <filesystem>
-#include <sys/stat.h>
-#include <unistd.h>
+
+#include "nativepath.h"
 
 namespace
 {
@@ -84,15 +83,14 @@ ThumbnailCache::Size thumbnailSizeFromString(const QString &s)
 
 QString displayPath(const QByteArray &path)
 {
-    return QString::fromLocal8Bit(path.constData(), path.size());
+    return nativepath::displayFromNative(path);
 }
 
 QString filenameFromPath(const QByteArray &path)
 {
-    const std::filesystem::path fsPath(path.toStdString());
-    const std::string nativeName = fsPath.filename().native();
-    return QString::fromLocal8Bit(nativeName.data(),
-                                  static_cast<qsizetype>(nativeName.size()));
+    const QByteArray nativeName =
+        nativepath::nativeFromPath(nativepath::pathFromNative(path).filename());
+    return nativepath::displayFromNative(nativeName);
 }
 } // namespace
 
@@ -183,7 +181,7 @@ void MainWindow::setupUi()
 
     setCentralWidget(m_stack);
 
-    updatePathField(QFile::encodeName(QDir::homePath()));
+    updatePathField(nativepath::nativeFromDisplay(QDir::homePath()));
 
     // Dock widgets — can be dragged, floated and stacked by the user
     m_rootDock = new QDockWidget(tr("Roots"), this);
@@ -240,7 +238,7 @@ void MainWindow::setupMenuBar()
 
 void MainWindow::navigateToFolder(const QString &path)
 {
-    navigateToFolder(QFile::encodeName(path));
+    navigateToFolder(nativepath::nativeFromDisplay(path));
 }
 
 QByteArray MainWindow::siblingFolder(int delta) const
@@ -250,12 +248,12 @@ QByteArray MainWindow::siblingFolder(int delta) const
         return {};
 
     namespace fs = std::filesystem;
-    fs::path current(currentDir.toStdString());
+    fs::path current = nativepath::pathFromNative(currentDir);
     fs::path parent = current.parent_path();
     if (parent.empty() || parent == current)
         return {};
 
-    QByteArray parentPath = QByteArray::fromStdString(parent.native());
+    QByteArray parentPath = nativepath::nativeFromPath(parent);
     QModelIndex parentIdx = m_dirModel->indexForPath(parentPath);
     if (!parentIdx.isValid())
         return {};
@@ -313,7 +311,7 @@ void MainWindow::updatePathField(const QByteArray &path)
 {
     if (!m_pathEdit)
         return;
-    const QString text = QFile::decodeName(path);
+    const QString text = nativepath::displayFromNative(path);
     if (m_pathEdit->text() != text)
         m_pathEdit->setText(text);
 }
@@ -333,13 +331,13 @@ void MainWindow::openPath(const QString &path)
         return;
 
     if (info.isDir()) {
-        navigateToFolder(QFile::encodeName(info.absoluteFilePath()));
+        navigateToFolder(nativepath::nativeFromDisplay(info.absoluteFilePath()));
     } else if (info.isFile()) {
-        navigateToFolder(QFile::encodeName(info.absolutePath()));
+        navigateToFolder(nativepath::nativeFromDisplay(info.absolutePath()));
 
         // ImageModel::setDirectory is synchronous, so items are ready now.
         // Find the file in the model and open it.
-        QByteArray target = QFile::encodeName(info.absoluteFilePath());
+        QByteArray target = nativepath::nativeFromDisplay(info.absoluteFilePath());
         for (int i = 0; i < m_imageModel->rowCount(); ++i) {
             QModelIndex idx = m_imageModel->index(i);
             if (m_imageModel->filePath(idx) == target) {
@@ -394,7 +392,7 @@ void MainWindow::setupConnections()
                 QString rootPath = current->data(Qt::UserRole).toString();
                 m_dirModel->setRootPath(rootPath);
                 m_treeView->setRootIndex(m_dirModel->rootIndex());
-                navigateToFolder(QFile::encodeName(rootPath));
+                navigateToFolder(nativepath::nativeFromDisplay(rootPath));
             });
 
     connect(m_treeView, &QTreeView::clicked, this,
@@ -537,24 +535,21 @@ void MainWindow::showPreview(const QModelIndex &index)
 
     QByteArray path = m_imageModel->filePath(index);
 
-    int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
-    if (fd >= 0) {
-        QFile file;
-        if (file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
-            QImageReader reader(&file);
-            reader.setAutoTransform(true);
-            QSize fullSize = reader.size();
-            if (fullSize.isValid()) {
-                QSize target = fullSize.scaled(m_previewLabel->size(), Qt::KeepAspectRatio);
-                reader.setScaledSize(target);
-            }
-            QImage image = reader.read();
-            m_previewLabel->setPixmap(
-                QPixmap::fromImage(image).scaled(
-                    m_previewLabel->size(),
-                    Qt::KeepAspectRatio,
-                    Qt::SmoothTransformation));
+    QFile file;
+    if (nativepath::openNativeRead(path, file)) {
+        QImageReader reader(&file);
+        reader.setAutoTransform(true);
+        QSize fullSize = reader.size();
+        if (fullSize.isValid()) {
+            QSize target = fullSize.scaled(m_previewLabel->size(), Qt::KeepAspectRatio);
+            reader.setScaledSize(target);
         }
+        QImage image = reader.read();
+        m_previewLabel->setPixmap(
+            QPixmap::fromImage(image).scaled(
+                m_previewLabel->size(),
+                Qt::KeepAspectRatio,
+                Qt::SmoothTransformation));
     }
 
     updateExifInfo(path);
@@ -563,8 +558,8 @@ void MainWindow::showPreview(const QModelIndex &index)
 void MainWindow::updateExifInfo(const QByteArray &path)
 {
     // Check if this is a folder by attempting stat
-    struct ::stat st{};
-    if (::stat(path.constData(), &st) != 0 || S_ISDIR(st.st_mode)) {
+    const nativepath::NativeStat st = nativepath::nativeStat(path);
+    if (!st.exists || st.isDir) {
         m_exifTable->setRowCount(0);
         return;
     }
@@ -633,7 +628,7 @@ void MainWindow::onEditCaption()
     if (path.isEmpty())
         return;
 
-    if (::access(path.constData(), W_OK) != 0) {
+    if (!nativepath::isWritable(path)) {
         QMessageBox::warning(this, tr("Cannot Edit Caption"),
             tr("The file is write-protected and cannot be edited.\n\n%1")
                 .arg(displayPath(path)));
@@ -698,7 +693,7 @@ void MainWindow::executeContextMenu(const QPoint &globalPos, const QByteArray &p
     QAction *copyFullPathAction = menu.addAction(tr("Copy full path"));
     menu.addSeparator();
 
-    QFileInfo info(QFile::decodeName(path));
+    QFileInfo info(nativepath::displayFromNative(path));
     QString suffix = info.suffix().toLower();
     bool isJpg = (suffix == "jpg" || suffix == "jpeg");
 
@@ -738,7 +733,7 @@ void MainWindow::rotateImage(const QModelIndex &index, bool clockwise)
 
     const QByteArray path = m_imageModel->filePath(index);
 
-    if (::access(path.constData(), W_OK) != 0) {
+    if (!nativepath::isWritable(path)) {
         QMessageBox::warning(this, tr("Cannot Rotate Image"),
             tr("The file is write-protected and cannot be rotated.\n\n%1")
                 .arg(displayPath(path)));

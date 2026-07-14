@@ -50,7 +50,7 @@ public:
 
     // path is the raw native OS byte string (handles non-UTF-8 filenames)
     void setDirectory(const QByteArray &path);
-    void setDirectory(const QString &path);   // convenience: converts via QFile::encodeName
+    void setDirectory(const QString &path);   // convenience: converts via nativepath::nativeFromDisplay
     QByteArray filePath(const QModelIndex &index) const;
     bool isFolder(const QModelIndex &index) const;
     QByteArray currentDirectory() const;

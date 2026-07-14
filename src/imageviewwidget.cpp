@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include "imageviewwidget.h"
 #include "shortcutmanager.h"
+#include "nativepath.h"
 
 #include <QPainter>
 #include <QMouseEvent>
@@ -35,9 +36,6 @@ SOFTWARE.
 #include <QPalette>
 #include <algorithm>
 #include <iostream>
-
-#include <fcntl.h>
-#include <unistd.h>
 
 // --- ImageLoadWorker ---
 
@@ -54,15 +52,8 @@ ImageLoadWorker::ImageLoadWorker(const QByteArray &path, QObject *parent)
 // affinity), so onImageLoaded() always executes on the main thread.
 void ImageLoadWorker::run()
 {
-    int fd = ::open(m_path.constData(), O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        emit imageLoaded(m_path, QPixmap{});
-        return;
-    }
-
     QFile file;
-    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
-        ::close(fd);
+    if (!nativepath::openNativeRead(m_path, file)) {
         emit imageLoaded(m_path, QPixmap{});
         return;
     }
@@ -97,15 +88,9 @@ ImageViewWidget::ImageViewWidget(QWidget *parent)
 
 QPixmap ImageViewWidget::loadImageFromDisk(const QByteArray &path)
 {
-    int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
-        return {};
-
     QFile file;
-    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
-        ::close(fd);
+    if (!nativepath::openNativeRead(path, file))
         return {};
-    }
 
     QImageReader reader(&file);
     reader.setAutoTransform(true);

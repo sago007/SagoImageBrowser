@@ -25,6 +25,7 @@ SOFTWARE.
 
 
 #include "exifreader.h"
+#include "nativepath.h"
 
 #include <QFile>
 #include <QImageReader>
@@ -39,10 +40,16 @@ using Exiv2ImagePtr = Exiv2::Image::UniquePtr;
 using Exiv2ImagePtr = Exiv2::Image::AutoPtr;
 #endif
 
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <filesystem>
-#include <unistd.h>
+// exiv2 cannot represent an arbitrary Windows name through a narrow std::string;
+// on Windows use its wide-path overload fed from our lossless WTF-8 handle.
+static Exiv2ImagePtr openExiv2(const QByteArray &path)
+{
+#ifdef _WIN32
+    return Exiv2::ImageFactory::open(nativepath::wideFromNative(path));
+#else
+    return Exiv2::ImageFactory::open(path.toStdString());
+#endif
+}
 
 // Raw EXIF date format is "YYYY:MM:DD HH:MM:SS"; reformat date separators to dashes
 static QString formatDate(const QString &raw)
@@ -153,21 +160,20 @@ ExifData ExifReader::read(const QByteArray &path)
 {
     ExifData data;
 
-    struct ::stat st{};
-    if (::stat(path.constData(), &st) != 0 || !S_ISREG(st.st_mode))
+    const nativepath::NativeStat st = nativepath::nativeStat(path);
+    if (!st.isRegular)
         return data;
 
     // Filename
     {
-        const std::filesystem::path fsPath(path.toStdString());
-        const std::string nativeName = fsPath.filename().native();
-        data.filename = QString::fromLocal8Bit(
-            nativeName.data(), static_cast<qsizetype>(nativeName.size()));
+        const QByteArray nativeName =
+            nativepath::nativeFromPath(nativepath::pathFromNative(path).filename());
+        data.filename = nativepath::displayFromNative(nativeName);
     }
 
     // File size
     {
-        qint64 size = static_cast<qint64>(st.st_size);
+        qint64 size = st.size;
         if (size < 1024)
             data.fileSize = QString::number(size) + QLatin1String(" B");
         else if (size < 1024 * 1024)
@@ -178,25 +184,20 @@ ExifData ExifReader::read(const QByteArray &path)
 
     // Image dimensions via Qt (reads only the header, no full decode needed)
     {
-        int fd = ::open(path.constData(), O_RDONLY | O_CLOEXEC);
-        if (fd >= 0) {
-            QFile file;
-            if (file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
-                QImageReader reader(&file);
-                reader.setDecideFormatFromContent(true);
-                QSize sz = reader.size();
-                        if (sz.isValid())
-                    data.dimensions = QString::fromLatin1("%1 * %2")
-                                          .arg(sz.width()).arg(sz.height());
-            } else {
-                ::close(fd);
-            }
+        QFile file;
+        if (nativepath::openNativeRead(path, file)) {
+            QImageReader reader(&file);
+            reader.setDecideFormatFromContent(true);
+            QSize sz = reader.size();
+            if (sz.isValid())
+                data.dimensions = QString::fromLatin1("%1 * %2")
+                                      .arg(sz.width()).arg(sz.height());
         }
     }
 
     // EXIF tags via exiv2
     try {
-        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = openExiv2(path);
         image->readMetadata();
         const Exiv2::ExifData &exif = image->exifData();
 
@@ -252,7 +253,7 @@ bool ExifReader::saveCaption(const QByteArray &path,
                              const ExifData   &oldData)
 {
     try {
-        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = openExiv2(path);
         image->readMetadata();
 
         // Erase all existing Caption-Abstract entries then add the new one
@@ -284,7 +285,7 @@ bool ExifReader::saveCaption(const QByteArray &path,
 bool ExifReader::rotate(const QByteArray &path, bool clockwise)
 {
     try {
-        Exiv2ImagePtr image = Exiv2::ImageFactory::open(path.toStdString());
+        Exiv2ImagePtr image = openExiv2(path);
         image->readMetadata();
         Exiv2::ExifData &exif = image->exifData();
 

@@ -26,12 +26,10 @@ SOFTWARE.
 #include "thumbnailworker.h"
 
 #include "thumbnailcache.h"
+#include "nativepath.h"
 
 #include <QFile>
 #include <QImageReader>
-
-#include <fcntl.h>
-#include <unistd.h>
 
 namespace
 {
@@ -89,18 +87,12 @@ void ThumbnailWorker::run()
         return;
     }
 
-    // Open the file via POSIX open() so that paths with non-UTF-8 bytes
-    // (e.g. Latin-1 encoded filenames) are handled correctly.
-    int fd = ::open(m_path.constData(), O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
-        return;
-
+    // Open via the native-path helper so that names the OS's Unicode encoding
+    // cannot represent (non-UTF-8 bytes on POSIX, unpaired surrogates on
+    // Windows) are handled correctly.
     QFile file;
-    if (!file.open(fd, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle))
-    {
-        ::close(fd);
+    if (!nativepath::openNativeRead(m_path, file))
         return;
-    }
 
     QImageReader reader(&file);
     reader.setAutoTransform(true);

@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include "imagemodel.h"
 #include "thumbnailworker.h"
+#include "nativepath.h"
 
 #include <QImageReader>
 #include <QFileIconProvider>
@@ -96,7 +97,7 @@ void ImageModel::setThumbnailSize(ThumbnailCache::Size size)
 
 void ImageModel::setDirectory(const QString &path)
 {
-    setDirectory(QFile::encodeName(path));
+    setDirectory(nativepath::nativeFromDisplay(path));
 }
 
 void ImageModel::setDirectory(const QByteArray &path)
@@ -136,18 +137,18 @@ void ImageModel::setDirectory(const QByteArray &path)
     // skipped or mangled as they would be with QDir::entryInfoList().
     namespace fs = std::filesystem;
 
-    std::vector<std::string> dirs;
-    std::vector<std::string> imageFiles;
+    std::vector<QByteArray> dirs;
+    std::vector<QByteArray> imageFiles;
 
     try {
-        fs::path dirPath(path.toStdString());
+        fs::path dirPath = nativepath::pathFromNative(path);
 
         // Add ".." parent entry directly with the literal display name ".."
         // (mirrors QDir::NoDot behaviour)
         fs::path parentPath = dirPath.parent_path();
         if (!parentPath.empty() && parentPath != dirPath) {
             QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
-            m_items.append({QByteArray::fromStdString(parentPath.native()),
+            m_items.append({nativepath::nativeFromPath(parentPath),
                             QStringLiteral(".."), folderPixmap, true, true});
         }
 
@@ -156,46 +157,45 @@ void ImageModel::setDirectory(const QByteArray &path)
                  fs::directory_options::skip_permission_denied))
         {
             std::error_code ec;
-            const std::string fname = entry.path().filename().native();
-            if (fname.empty() || fname[0] == '.')
+            const QByteArray fname = nativepath::nativeFromPath(entry.path().filename());
+            if (fname.isEmpty() || fname.at(0) == '.')
                 continue;   // skip hidden entries
 
             if (entry.is_directory(ec)) {
-                dirs.push_back(entry.path().native());
+                dirs.push_back(nativepath::nativeFromPath(entry.path()));
             } else if (entry.is_regular_file(ec)) {
                 // Filter by image extension
-                const std::string &nativeExt = entry.path().extension().native();
-                if (nativeExt.empty())
+                const QByteArray nativeExt = nativepath::nativeFromPath(entry.path().extension());
+                if (nativeExt.isEmpty())
                     continue;
                 // extension() includes the dot; strip it and lower-case
-                QByteArray ext = QByteArray(nativeExt.c_str() + 1,
-                                           static_cast<qsizetype>(nativeExt.size()) - 1).toLower();
+                QByteArray ext = nativeExt.mid(1).toLower();
                 if (imageExts.contains(ext))
-                    imageFiles.push_back(entry.path().native());
+                    imageFiles.push_back(nativepath::nativeFromPath(entry.path()));
             }
         }
     } catch (const fs::filesystem_error &) {
         // Directory unreadable — show empty listing
     }
 
-    // Sort subdirectories by filename
+    // Sort subdirectories and image files by filename
     std::sort(dirs.begin(), dirs.end(),
-              [](const auto &a, const auto &b) {
-                  return fs::path(a).filename() < fs::path(b).filename();
+              [](const QByteArray &a, const QByteArray &b) {
+                  return nativepath::pathFromNative(a).filename()
+                       < nativepath::pathFromNative(b).filename();
               });
-
     std::sort(imageFiles.begin(), imageFiles.end(),
-              [](const auto &a, const auto &b) {
-                  return fs::path(a).filename() < fs::path(b).filename();
+              [](const QByteArray &a, const QByteArray &b) {
+                  return nativepath::pathFromNative(a).filename()
+                       < nativepath::pathFromNative(b).filename();
               });
 
     QPixmap folderPixmap = m_folderIcon.pixmap(128, 128);
-    for (const std::string &nativePath : dirs)
+    for (const QByteArray &entryPath : dirs)
     {
-        QByteArray entryPath = QByteArray::fromStdString(nativePath);
-        std::string fname = fs::path(nativePath).filename().native();
-        QString displayName = QString::fromLocal8Bit(fname.c_str(),
-                                                     static_cast<qsizetype>(fname.size()));
+        const QByteArray fname =
+            nativepath::nativeFromPath(nativepath::pathFromNative(entryPath).filename());
+        QString displayName = nativepath::displayFromNative(fname);
         m_items.append({entryPath, displayName, folderPixmap, true, true});
     }
 
@@ -204,12 +204,11 @@ void ImageModel::setDirectory(const QByteArray &path)
         ? &m_folderThumbnailCache[path]
         : nullptr;
 
-    for (const std::string &nativePath : imageFiles)
+    for (const QByteArray &entryPath : imageFiles)
     {
-        QByteArray entryPath = QByteArray::fromStdString(nativePath);
-        std::string fname = fs::path(nativePath).filename().native();
-        QString displayName = QString::fromLocal8Bit(fname.c_str(),
-                                                     static_cast<qsizetype>(fname.size()));
+        const QByteArray fname =
+            nativepath::nativeFromPath(nativepath::pathFromNative(entryPath).filename());
+        QString displayName = nativepath::displayFromNative(fname);
 
         QPixmap thumb = m_placeholder;
         bool loaded = false;

@@ -63,7 +63,7 @@ private:
     void onPreferencesTriggered();
     void resetLayoutToDefault();
     void navigateToFolder(const QByteArray &path);
-    void navigateToFolder(const QString &path);  // convenience: converts via QFile::encodeName
+    void navigateToFolder(const QString &path);  // convenience: converts via nativepath::nativeFromDisplay
     void selectPreviousFolderIfExists();
     void setFullScreenMode(bool fullScreen);
     void loadVisibleThumbnails();

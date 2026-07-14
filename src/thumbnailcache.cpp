@@ -24,6 +24,7 @@ SOFTWARE.
 */
 
 #include "thumbnailcache.h"
+#include "nativepath.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -31,8 +32,6 @@ SOFTWARE.
 #include <QStandardPaths>
 #include <QTemporaryFile>
 #include <QUrl>
-
-#include <sys/stat.h>
 
 namespace
 {
@@ -89,8 +88,8 @@ bool ThumbnailCache::isInsideCache(const QByteArray &absPath)
 // using its arguments.  Safe to call concurrently from multiple threads.
 QImage ThumbnailCache::load(const QByteArray &sourcePath, Size size)
 {
-    struct ::stat st{};
-    if (::stat(sourcePath.constData(), &st) != 0 || !S_ISREG(st.st_mode))
+    const nativepath::NativeStat st = nativepath::nativeStat(sourcePath);
+    if (!st.isRegular)
         return {};
 
     const QByteArray uri = canonicalUri(sourcePath);
@@ -100,7 +99,7 @@ QImage ThumbnailCache::load(const QByteArray &sourcePath, Size size)
     if (!img.load(cachePath, "PNG"))
         return {};
 
-    const qint64 mtime = static_cast<qint64>(st.st_mtime);
+    const qint64 mtime = st.mtime;
     bool ok = false;
     const qint64 cachedMTime = img.text("Thumb::MTime").toLongLong(&ok);
     if (!ok || cachedMTime != mtime)
@@ -118,8 +117,8 @@ void ThumbnailCache::save(const QByteArray &sourcePath, Size size, const QImage 
     if (thumbImage.isNull())
         return;
 
-    struct ::stat st{};
-    if (::stat(sourcePath.constData(), &st) != 0 || !S_ISREG(st.st_mode))
+    const nativepath::NativeStat st = nativepath::nativeStat(sourcePath);
+    if (!st.isRegular)
         return;
 
     const QByteArray uri = canonicalUri(sourcePath);
@@ -134,9 +133,8 @@ void ThumbnailCache::save(const QByteArray &sourcePath, Size size, const QImage 
 
     QImage tagged = thumbImage;
     tagged.setText("Thumb::URI", QString::fromLatin1(uri));
-    tagged.setText("Thumb::MTime",
-                   QString::number(static_cast<qint64>(st.st_mtime)));
-    tagged.setText("Thumb::Size", QString::number(static_cast<qint64>(st.st_size)));
+    tagged.setText("Thumb::MTime", QString::number(st.mtime));
+    tagged.setText("Thumb::Size", QString::number(st.size));
     tagged.setText("Software", QString::fromLatin1(kSoftware));
 
     QTemporaryFile tmp(subdir + "/tmp_XXXXXX.png");

@@ -24,6 +24,7 @@ SOFTWARE.
 */
 
 #include "pathcompletermodel.h"
+#include "nativepath.h"
 
 #include <QFileInfo>
 
@@ -75,27 +76,26 @@ void PathCompleterModel::setPrefix(const QString &text)
 
     QStringList newEntries;
     try {
-        const QByteArray parentNative = QFile::encodeName(parentDir);
-        std::vector<std::pair<std::string, std::string>> entries; // {nativePath, filename}
+        const QByteArray parentNative = nativepath::nativeFromDisplay(parentDir);
+        std::vector<std::pair<QByteArray, QByteArray>> entries; // {nativePath, filename}
         for (const fs::directory_entry &entry :
-             fs::directory_iterator(parentNative.toStdString(),
+             fs::directory_iterator(nativepath::pathFromNative(parentNative),
                                     fs::directory_options::skip_permission_denied))
         {
             std::error_code ec;
-            const std::string fname = entry.path().filename().native();
-            if (fname.empty() || fname[0] == '.')
+            const QByteArray fname = nativepath::nativeFromPath(entry.path().filename());
+            if (fname.isEmpty() || fname.at(0) == '.')
                 continue;
             if (!entry.is_directory(ec))
                 continue;
-            entries.push_back({entry.path().native(), fname});
+            entries.push_back({nativepath::nativeFromPath(entry.path()), fname});
         }
         std::sort(entries.begin(), entries.end(),
                   [](const auto &a, const auto &b) { return a.second < b.second; });
 
         newEntries.reserve(static_cast<qsizetype>(entries.size()));
         for (const auto &[npath, fname] : entries) {
-            newEntries.append(QFile::decodeName(
-                QByteArray::fromStdString(npath)));
+            newEntries.append(nativepath::displayFromNative(npath));
         }
     } catch (const fs::filesystem_error &) {
         // Inaccessible parent — fall through with an empty list.
