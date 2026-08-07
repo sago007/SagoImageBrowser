@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(SagoImageBrowser LANGUAGES CXX)
+project(SagoImageBrowser VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
@@ -49,6 +49,18 @@ qt_add_executable(SagoImageBrowser
     src/pathcompletermodel.h
     src/thumbnaildelegate.cpp
     src/thumbnaildelegate.h)
+
+if(WIN32)
+    enable_language(RC)
+    # windres resolves relative paths in .rc files against its own CWD, not
+    # the .rc file's location, so the icon path must be baked in as absolute.
+    set(SAGO_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extra/windows/sago_image_browser.ico")
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/extra/windows/sagoimagebrowser.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/sagoimagebrowser.rc
+        @ONLY)
+    target_sources(SagoImageBrowser PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/sagoimagebrowser.rc)
+endif()
 
 set_source_files_properties(extra/icons/sago_image_browser.svg PROPERTIES QT_RESOURCE_ALIAS sago_image_browser.svg)
 qt_add_resources(SagoImageBrowser "icons" PREFIX "/icons" FILES extra/icons/sago_image_browser.svg)

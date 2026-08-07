@@ -1,9 +1,46 @@
-FROM sago007/mxe_qt6
+# syntax=docker/dockerfile:1
+FROM sago007/mxe_qt6 AS builder
+
+# wixl -> MSI builder (packaged separately from msitools on Ubuntu/Debian),
+# librsvg2-bin -> rsvg-convert (SVG->PNG), icoutils -> icotool (assemble
+# multi-res .ico from PNGs)
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        wixl \
+        librsvg2-bin \
+        icoutils \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /staging/sago_image_browser
 
 COPY . /staging/sago_image_browser
 
+# Generate a multi-resolution Windows .ico from the SVG source icon.
+RUN mkdir -p /staging/sago_image_browser/extra/windows /tmp/icon-build && \
+    cd /tmp/icon-build && \
+    rsvg-convert -w 16  -h 16  /staging/sago_image_browser/extra/icons/sago_image_browser.svg -o icon-16.png && \
+    rsvg-convert -w 32  -h 32  /staging/sago_image_browser/extra/icons/sago_image_browser.svg -o icon-32.png && \
+    rsvg-convert -w 48  -h 48  /staging/sago_image_browser/extra/icons/sago_image_browser.svg -o icon-48.png && \
+    rsvg-convert -w 256 -h 256 /staging/sago_image_browser/extra/icons/sago_image_browser.svg -o icon-256.png && \
+    icotool -c -o /staging/sago_image_browser/extra/windows/sago_image_browser.ico \
+        icon-16.png icon-32.png icon-48.png icon-256.png
+
 RUN cd /staging/sago_image_browser && rm -rf build && mkdir build && cd build && \
 i686-w64-mingw32.static-cmake .. && \
 make -j$(nproc)
+
+# Stage the payload wixl needs (it resolves relative Source/SourceFile paths
+# against its own CWD), then compile the MSI. Version is read out of
+# CMakeLists.txt so it stays the single source of truth.
+RUN mkdir -p /out && \
+    cp /staging/sago_image_browser/build/SagoImageBrowser.exe /out/ && \
+    cp /staging/sago_image_browser/extra/windows/sago_image_browser.ico /out/ && \
+    cp /staging/sago_image_browser/extra/windows/sagoimagebrowser.wxs /out/SagoImageBrowser.wxs && \
+    cd /out && \
+    VERSION=$(grep -oP 'VERSION \K[0-9]+\.[0-9]+\.[0-9]+' /staging/sago_image_browser/CMakeLists.txt) && \
+    echo "Building MSI for version: $VERSION" && \
+    wixl -v -D Version="$VERSION" -o SagoImageBrowser.msi SagoImageBrowser.wxs
+
+# Minimal export-only stage: `docker build --target export -o dist/ .`
+# copies just these two files to the host, nothing else.
+#FROM scratch AS export
+#COPY --from=builder /out/SagoImageBrowser.exe /out/SagoImageBrowser.msi /

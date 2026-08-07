@@ -75,6 +75,28 @@ A small test for the EXIF reader is built alongside the application:
 ./build/test_exifreader
 ```
 
+## Windows MSI build
+
+A 32-bit Windows build (statically linked, no external DLLs required) is cross-compiled via
+[MXE](https://mxe.cc/) in Docker, and packaged as an MSI installer with `wixl` (from
+[msitools](https://wiki.gnome.org/Projects/msitools)):
+
+```bash
+docker build -f extra/docker/Dockerfile.WindowsMxe --target export -o dist/ .
+```
+
+This produces `dist/SagoImageBrowser.exe` and `dist/SagoImageBrowser.msi`. If your Docker
+installation doesn't support `--output`/`-o` (requires BuildKit), build the `export` stage as a
+tagged image instead and copy the files out manually:
+
+```bash
+docker build -f extra/docker/Dockerfile.WindowsMxe --target export -t sago_image_browser_export .
+id=$(docker create sago_image_browser_export)
+docker cp "$id":/SagoImageBrowser.exe dist/
+docker cp "$id":/SagoImageBrowser.msi dist/
+docker rm "$id"
+```
+
 ## Project Structure
 
 ```

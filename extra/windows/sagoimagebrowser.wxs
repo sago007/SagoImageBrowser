@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+  <Product
+    Id='*'
+    Name='Sago Image Browser'
+    Language='1033'
+    Version='$(var.Version)'
+    Manufacturer='Poul Sander'
+    UpgradeCode='a39df77d-4657-44e1-94ca-b723b312463e'
+  >
+    <Package
+      Description='Sago Image Browser - a fast image browser'
+      Manufacturer='Poul Sander'
+      InstallerVersion='200'
+      Compressed='yes'
+      InstallScope='perMachine'
+    />
+
+    <MajorUpgrade DowngradeErrorMessage='A newer version of [ProductName] is already installed.' />
+    <MediaTemplate EmbedCab='yes' />
+
+    <Icon Id='SagoImageBrowser.ico' SourceFile='sago_image_browser.ico' />
+    <Property Id='ARPPRODUCTICON' Value='SagoImageBrowser.ico' />
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder'>
+        <Directory Id='APPLICATIONROOTDIRECTORY' Name='Sago Image Browser' />
+      </Directory>
+      <Directory Id='ProgramMenuFolder'>
+        <Directory Id='ApplicationProgramsFolder' Name='Sago Image Browser' />
+      </Directory>
+      <Directory Id='DesktopFolder' Name='Desktop' />
+    </Directory>
+
+    <DirectoryRef Id='APPLICATIONROOTDIRECTORY'>
+      <Component Id='SagoImageBrowserExeComponent' Guid='41ce260d-34ff-41f5-b1e9-54b2b8722d90'>
+        <File Id='SagoImageBrowserExeFile' Source='SagoImageBrowser.exe' KeyPath='yes' />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id='ApplicationProgramsFolder'>
+      <Component Id='StartMenuShortcutComponent' Guid='b1efe04a-9b8c-444b-8ceb-61e0b8cc379d'>
+        <Shortcut Id='StartMenuShortcut'
+                  Name='Sago Image Browser'
+                  Description='A fast image browser'
+                  Target='[#SagoImageBrowserExeFile]'
+                  WorkingDirectory='APPLICATIONROOTDIRECTORY'
+                  Icon='SagoImageBrowser.ico' />
+        <RemoveFolder Id='RemoveApplicationProgramsFolder' On='uninstall' />
+        <RegistryValue Root='HKCU' Key='Software\PoulSander\SagoImageBrowser'
+                        Name='StartMenuShortcutInstalled' Type='integer' Value='1' KeyPath='yes' />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id='DesktopFolder'>
+      <Component Id='DesktopShortcutComponent' Guid='a0adad4a-1b9e-4881-b96a-d5ec245f9eef'>
+        <Shortcut Id='DesktopShortcut'
+                  Name='Sago Image Browser'
+                  Description='A fast image browser'
+                  Target='[#SagoImageBrowserExeFile]'
+                  WorkingDirectory='APPLICATIONROOTDIRECTORY'
+                  Icon='SagoImageBrowser.ico' />
+        <RegistryValue Root='HKCU' Key='Software\PoulSander\SagoImageBrowser'
+                        Name='DesktopShortcutInstalled' Type='integer' Value='1' KeyPath='yes' />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id='MainApplication' Title='Sago Image Browser' Level='1'>
+      <ComponentRef Id='SagoImageBrowserExeComponent' />
+      <ComponentRef Id='StartMenuShortcutComponent' />
+      <ComponentRef Id='DesktopShortcutComponent' />
+    </Feature>
+
+  </Product>
+</Wix>

@@ -3,3 +3,5 @@ build
 Makefile
 *.patch
 .idea
+dist
+extra/windows/*.ico
