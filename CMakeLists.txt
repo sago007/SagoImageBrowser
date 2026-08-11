@@ -51,6 +51,10 @@ qt_add_executable(SagoImageBrowser
     src/thumbnaildelegate.h)
 
 if(WIN32)
+    # Link as a GUI (not console) subsystem app, otherwise a console window
+    # briefly flashes on launch before Qt's event loop takes over.
+    set_target_properties(SagoImageBrowser PROPERTIES WIN32_EXECUTABLE TRUE)
+
     enable_language(RC)
     # windres resolves relative paths in .rc files against its own CWD, not
     # the .rc file's location, so the icon path must be baked in as absolute.
